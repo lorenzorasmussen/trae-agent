@@ -12,7 +12,7 @@ from .task_done_tool import TaskDoneTool
 __all__ = [
     "Tool",
     "ToolResult",
-    "ToolCall", 
+    "ToolCall",
     "ToolExecutor",
     "BashTool",
     "TextEditorTool",

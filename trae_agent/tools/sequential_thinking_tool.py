@@ -13,7 +13,7 @@ import json
 
 from dataclasses import dataclass
 from typing import override
-from trae_agent.tools.base import Tool, ToolCallArguments, ToolExecResult, ToolParameter
+from .base import Tool, ToolCallArguments, ToolExecResult, ToolParameter
 
 
 @dataclass
@@ -154,28 +154,28 @@ You should:
         self.thought_history: list[ThoughtData] = []
         self.branches: dict[str, list[ThoughtData]] = {}
         super().__init__()
-    
+
     def _validate_thought_data(self, arguments: ToolCallArguments) -> ThoughtData:
         """Validate the input arguments and return a ThoughtData object."""
         if "thought" not in arguments or not isinstance(arguments["thought"], str):
             raise ValueError("Invalid thought: must be a string")
-        
+
         if "thought_number" not in arguments or not isinstance(arguments["thought_number"], int):
             raise ValueError("Invalid thought_number: must be a number")
-        
+
         if "total_thoughts" not in arguments or not isinstance(arguments["total_thoughts"], int):
             raise ValueError("Invalid total_thoughts: must be a number")
-        
+
         if "next_thought_needed" not in arguments or not isinstance(arguments["next_thought_needed"], bool):
             raise ValueError("Invalid next_thought_needed: must be a boolean")
-        
+
         # Validate minimum values
         if arguments["thought_number"] < 1:
             raise ValueError("thought_number must be at least 1")
-        
+
         if arguments["total_thoughts"] < 1:
             raise ValueError("total_thoughts must be at least 1")
-        
+
         # Validate optional revision fields
         if "revises_thought" in arguments and arguments["revises_thought"] is not None:
             if not isinstance(arguments["revises_thought"], int) or arguments["revises_thought"] < 1:
@@ -184,7 +184,7 @@ You should:
                 revises_thought = int(arguments["revises_thought"])
         else:
             revises_thought = None
-        
+
         if "branch_from_thought" in arguments and arguments["branch_from_thought"] is not None:
             if not isinstance(arguments["branch_from_thought"], int) or arguments["branch_from_thought"] < 1:
                 raise ValueError("branch_from_thought must be a positive integer")
@@ -192,27 +192,27 @@ You should:
                 branch_from_thought = int(arguments["branch_from_thought"])
         else:
             branch_from_thought = None
-        
+
         # Extract and cast the validated values
         thought = str(arguments["thought"])
         thought_number = int(arguments["thought_number"])  # Already validated as int
         total_thoughts = int(arguments["total_thoughts"])  # Already validated as int
         next_thought_needed = bool(arguments["next_thought_needed"])  # Already validated as bool
-        
+
         # Handle optional fields with proper type checking
         is_revision = None
         branch_id = None
         needs_more_thoughts = None
-        
+
         if "is_revision" in arguments and arguments["is_revision"] is not None:
             is_revision = bool(arguments["is_revision"])
 
         if "branch_id" in arguments and arguments["branch_id"] is not None:
             branch_id = str(arguments["branch_id"])
-        
+
         if "needs_more_thoughts" in arguments and arguments["needs_more_thoughts"] is not None:
             needs_more_thoughts = bool(arguments["needs_more_thoughts"])
-        
+
         return ThoughtData(
             thought=thought,
             thought_number=thought_number,
@@ -229,7 +229,7 @@ You should:
         """Format a thought for display with visual styling."""
         prefix = ""
         context = ""
-        
+
         if thought_data.is_revision:
             prefix = "🔄 Revision"
             context = f" (revising thought {thought_data.revises_thought})"
@@ -239,11 +239,11 @@ You should:
         else:
             prefix = "💭 Thought"
             context = ""
-        
+
         header = f"{prefix} {thought_data.thought_number}/{thought_data.total_thoughts}{context}"
         border_length = max(len(header), len(thought_data.thought)) + 4
         border = "─" * border_length
-        
+
         return f"""
 ┌{border}┐
 │ {header.ljust(border_length - 2)} │
@@ -257,24 +257,24 @@ You should:
         try:
             # Validate and extract thought data
             validated_input = self._validate_thought_data(arguments)
-            
+
             # Adjust total thoughts if current thought number exceeds it
             if validated_input.thought_number > validated_input.total_thoughts:
                 validated_input.total_thoughts = validated_input.thought_number
-            
+
             # Add to thought history
             self.thought_history.append(validated_input)
-            
+
             # Handle branching
             if validated_input.branch_from_thought and validated_input.branch_id:
                 if validated_input.branch_id not in self.branches:
                     self.branches[validated_input.branch_id] = []
                 self.branches[validated_input.branch_id].append(validated_input)
-            
+
             # Format and display the thought
-            formatted_thought = self._format_thought(validated_input)
-            print(formatted_thought, flush=True)  # Print to stdout for immediate feedback
-            
+            # formatted_thought = self._format_thought(validated_input)
+            # print(formatted_thought, flush=True)  # Print to stdout for immediate feedback
+
             # Prepare response
             response_data = {
                 "thought_number": validated_input.thought_number,
@@ -283,11 +283,11 @@ You should:
                 "branches": list(self.branches.keys()),
                 "thought_history_length": len(self.thought_history)
             }
-            
+
             return ToolExecResult(
                 output=f"Sequential thinking step completed.\n\nStatus:\n{json.dumps(response_data, indent=2)}"
             )
-            
+
         except Exception as e:
             error_data = {
                 "error": str(e),

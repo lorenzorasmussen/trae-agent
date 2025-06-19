@@ -1,6 +1,11 @@
 # Copyright (c) 2025 ByteDance Ltd. and/or its affiliates
 # SPDX-License-Identifier: MIT
 
+# TODO: remove these annotations by defining fine-grained types
+# pyright: reportExplicitAny=false
+# pyright: reportArgumentType=false
+# pyright: reportAny=false
+
 """Trajectory recording functionality for Trae Agent."""
 
 import json
@@ -9,23 +14,23 @@ from pathlib import Path
 from typing import Any
 
 from ..tools.base import ToolCall, ToolResult
-from .base_client import LLMMessage, LLMResponse
+from .llm_basics import LLMMessage, LLMResponse
 
 
 class TrajectoryRecorder:
     """Records trajectory data for agent execution and LLM interactions."""
-    
+
     def __init__(self, trajectory_path: str | None = None):
         """Initialize trajectory recorder.
-        
+
         Args:
             trajectory_path: Path to save trajectory file. If None, generates default path.
         """
         if trajectory_path is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             trajectory_path = f"trajectory_{timestamp}.json"
-        
-        self.trajectory_path = Path(trajectory_path)
+
+        self.trajectory_path: Path = Path(trajectory_path)
         self.trajectory_data: dict[str, Any] = {
             "task": "",
             "start_time": "",
@@ -40,10 +45,10 @@ class TrajectoryRecorder:
             "execution_time": 0.0
         }
         self._start_time: datetime | None = None
-    
+
     def start_recording(self, task: str, provider: str, model: str, max_steps: int) -> None:
         """Start recording a new trajectory.
-        
+
         Args:
             task: The task being executed
             provider: LLM provider being used
@@ -60,15 +65,15 @@ class TrajectoryRecorder:
             "llm_interactions": [],
             "agent_steps": []
         })
-    
-    def record_llm_interaction(self, 
-                              messages: list[LLMMessage], 
+
+    def record_llm_interaction(self,
+                              messages: list[LLMMessage],
                               response: LLMResponse,
                               provider: str,
                               model: str,
                               tools: list[Any] | None = None) -> None:
         """Record an LLM interaction.
-        
+
         Args:
             messages: Input messages to the LLM
             response: Response from the LLM
@@ -96,9 +101,9 @@ class TrajectoryRecorder:
             },
             "tools_available": [tool.name for tool in tools] if tools else None
         }
-        
+
         self.trajectory_data["llm_interactions"].append(interaction)
-    
+
     def record_agent_step(self,
                          step_number: int,
                          state: str,
@@ -109,7 +114,7 @@ class TrajectoryRecorder:
                          reflection: str | None = None,
                          error: str | None = None) -> None:
         """Record an agent execution step.
-        
+
         Args:
             step_number: Step number in the execution
             state: Current state of the agent
@@ -140,12 +145,12 @@ class TrajectoryRecorder:
             "reflection": reflection,
             "error": error
         }
-        
+
         self.trajectory_data["agent_steps"].append(step_data)
-    
+
     def finalize_recording(self, success: bool, final_result: str | None = None) -> None:
         """Finalize the trajectory recording.
-        
+
         Args:
             success: Whether the task completed successfully
             final_result: Final result or output of the task
@@ -157,37 +162,37 @@ class TrajectoryRecorder:
             "final_result": final_result,
             "execution_time": (end_time - self._start_time).total_seconds() if self._start_time else 0.0
         })
-        
+
         # Save to file
         self.save_trajectory()
-    
+
     def save_trajectory(self) -> None:
         """Save the current trajectory data to file."""
         try:
             # Ensure directory exists
             self.trajectory_path.parent.mkdir(parents=True, exist_ok=True)
-            
+
             with open(self.trajectory_path, 'w', encoding='utf-8') as f:
                 json.dump(self.trajectory_data, f, indent=2, ensure_ascii=False)
-                
+
         except Exception as e:
             print(f"Warning: Failed to save trajectory to {self.trajectory_path}: {e}")
-    
+
     def _serialize_message(self, message: LLMMessage) -> dict[str, Any]:
         """Serialize an LLM message to a dictionary."""
         data = {
             "role": message.role,
             "content": message.content
         }
-        
+
         if message.tool_call:
             data["tool_call"] = self._serialize_tool_call(message.tool_call)
-        
+
         if message.tool_result:
             data["tool_result"] = self._serialize_tool_result(message.tool_result)
-        
+
         return data
-    
+
     def _serialize_tool_call(self, tool_call: ToolCall) -> dict[str, Any]:
         """Serialize a tool call to a dictionary."""
         return {
@@ -196,7 +201,7 @@ class TrajectoryRecorder:
             "arguments": tool_call.arguments,
             "id": getattr(tool_call, 'id', None)
         }
-    
+
     def _serialize_tool_result(self, tool_result: ToolResult) -> dict[str, Any]:
         """Serialize a tool result to a dictionary."""
         return {
@@ -206,7 +211,7 @@ class TrajectoryRecorder:
             "error": tool_result.error,
             "id": getattr(tool_result, 'id', None)
         }
-    
+
     def get_trajectory_path(self) -> str:
         """Get the path where trajectory is being saved."""
-        return str(self.trajectory_path) 
+        return str(self.trajectory_path)

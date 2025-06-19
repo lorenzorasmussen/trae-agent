@@ -5,35 +5,38 @@
 
 import json
 import os
+import random
+import time
 from typing import override
 import anthropic
 from anthropic.types.tool_union_param import TextEditor20250429
 
 from ..tools.base import Tool, ToolCall, ToolResult
 from ..utils.config import ModelParameters
-from .base_client import LLMUsage, LLMMessage, LLMResponse, BaseLLMClient
+from ..utils.llm_basics import LLMMessage, LLMResponse, LLMUsage
+from .base_client import BaseLLMClient
 
 class AnthropicClient(BaseLLMClient):
     """Anthropic client wrapper with tool schema generation."""
-    
+
     def __init__(self, model_parameters: ModelParameters):
         super().__init__(model_parameters)
 
         if self.api_key == "":
             self.api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
-        
+
         if self.api_key == "":
             raise ValueError("Anthropic API key not provided. Set ANTHROPIC_API_KEY in environment variables or config file.")
-        
+
         self.client: anthropic.Anthropic = anthropic.Anthropic(api_key=self.api_key)
         self.message_history: list[anthropic.types.MessageParam] = []
         self.system_message: str | anthropic.NotGiven = anthropic.NOT_GIVEN
-    
+
     @override
     def set_chat_history(self, messages: list[LLMMessage]) -> None:
         """Set the chat history."""
         self.message_history = self.parse_messages(messages)
-    
+
     @override
     def chat(self, messages: list[LLMMessage], model_parameters: ModelParameters, tools: list[Tool] | None = None, reuse_history: bool = True) -> LLMResponse:
         """Send chat messages to Anthropic with optional tool support."""
@@ -44,7 +47,7 @@ class AnthropicClient(BaseLLMClient):
             self.message_history = self.message_history + anthropic_messages
         else:
             self.message_history = anthropic_messages
-        
+
         # Add tools if provided
         tool_schemas: list[anthropic.types.ToolUnionParam] | anthropic.NotGiven = anthropic.NOT_GIVEN
         if tools:
@@ -71,22 +74,35 @@ class AnthropicClient(BaseLLMClient):
                             input_schema=tool.get_input_schema()
                         )
                     )
-            
-        response = self.client.messages.create(
-            model=model_parameters.model,
-            messages=self.message_history,
-            max_tokens=model_parameters.max_tokens,
-            system=self.system_message,
-            tools=tool_schemas if tool_schemas else anthropic.NOT_GIVEN,
-            temperature=model_parameters.temperature,
-            top_p=model_parameters.top_p,
-            top_k=model_parameters.top_k,
-        )
-        
+
+        response = None
+        error_message = ""
+        for i in range(model_parameters.max_retries):
+            try:
+                response = self.client.messages.create(
+                    model=model_parameters.model,
+                    messages=self.message_history,
+                    max_tokens=model_parameters.max_tokens,
+                    system=self.system_message,
+                    tools=tool_schemas if tool_schemas else anthropic.NOT_GIVEN,
+                    temperature=model_parameters.temperature,
+                    top_p=model_parameters.top_p,
+                    top_k=model_parameters.top_k,
+                )
+                break
+            except Exception as e:
+                error_message += f"Error {i + 1}: {str(e)}\n"
+                # Randomly sleep for 3-30 seconds
+                time.sleep(random.randint(3, 30))
+                continue
+
+        if response is None:
+            raise ValueError(f"Failed to get response from Anthropic after max retries: {error_message}")
+
         # Handle tool calls in response
         content = ""
         tool_calls: list[ToolCall] = []
-        
+
         for content_block in response.content:
             if content_block.type == "text":
                 content += content_block.text
@@ -113,7 +129,7 @@ class AnthropicClient(BaseLLMClient):
                 cache_creation_input_tokens=response.usage.cache_creation_input_tokens or 0,
                 cache_read_input_tokens=response.usage.cache_read_input_tokens or 0,
             )
-        
+
         llm_response = LLMResponse(
             content=content,
             usage=usage,
@@ -121,7 +137,7 @@ class AnthropicClient(BaseLLMClient):
             finish_reason=response.stop_reason,
             tool_calls=tool_calls if len(tool_calls) > 0 else None
         )
-        
+
         # Record trajectory if recorder is available
         if self.trajectory_recorder:
             self.trajectory_recorder.record_llm_interaction(
@@ -131,9 +147,9 @@ class AnthropicClient(BaseLLMClient):
                 model=model_parameters.model,
                 tools=tools
             )
-        
+
         return llm_response
-    
+
     @override
     def supports_tool_calling(self, model_parameters: ModelParameters) -> bool:
         """Check if the current model supports tool calling."""
@@ -168,10 +184,10 @@ class AnthropicClient(BaseLLMClient):
                     role = "assistant"
                 else:
                     raise ValueError(f"Invalid message role: {msg.role}")
-                
+
                 if not msg.content:
                     raise ValueError("Message content is required")
-                
+
                 anthropic_messages.append(anthropic.types.MessageParam(
                     role=role,
                     content=msg.content
@@ -186,7 +202,7 @@ class AnthropicClient(BaseLLMClient):
             name=tool_call.name,
             input=json.dumps(tool_call.arguments)
         )
-    
+
     def parse_tool_call_result(self, tool_call_result: ToolResult) -> anthropic.types.ToolResultBlockParam:
         """Parse the tool call result from the LLM response."""
         result: str = ""
@@ -196,7 +212,7 @@ class AnthropicClient(BaseLLMClient):
             result += "Tool call failed with error:\n"
             result += tool_call_result.error
         result = result.strip()
-        
+
         return anthropic.types.ToolResultBlockParam(
             tool_use_id=tool_call_result.call_id,
             type="tool_result",

@@ -171,3 +171,4 @@ cython_debug/
 #.idea/
 
 trajectory_*.json
+trae-config-local.json

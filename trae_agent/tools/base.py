@@ -30,7 +30,7 @@ class ToolResult:
     success: bool
     result: str | None = None
     error: str | None = None
-    id: str | None = None
+    id: str | None = None # OpenAI-specific field
 
 
 ToolCallArguments = dict[str, str | int | float | dict[str, object] | list[object] | None]
@@ -61,31 +61,38 @@ class ToolParameter():
 
 class Tool(ABC):
     """Base class for all tools."""
-    
+
     def __init__(self):
         self.name: str = self.get_name()
         self.description: str = self.get_description()
         self.parameters: list[ToolParameter] = self.get_parameters()
-    
+
     @abstractmethod
     def get_name(self) -> str:
         """Get the tool name."""
         pass
-    
+
     @abstractmethod
     def get_description(self) -> str:
         """Get the tool description."""
         pass
-    
+
     @abstractmethod
     def get_parameters(self) -> list[ToolParameter]:
         """Get the tool parameters."""
         pass
-    
+
     @abstractmethod
     async def execute(self, arguments: ToolCallArguments) -> ToolExecResult:
         """Execute the tool with given parameters."""
         pass
+
+    def json_definition(self) -> dict[str, object]:
+        return {
+            "name": self.get_name(),
+            "description": self.get_description(),
+            "parameters": self.get_input_schema()
+        }
 
     def get_input_schema(self) -> dict[str, object]:
         """Get the input schema for the tool."""
@@ -112,17 +119,17 @@ class Tool(ABC):
 
         schema["properties"] = properties
         if len(required) > 0:
-            schema["required"] = required 
+            schema["required"] = required
 
         return schema
 
 
 class ToolExecutor:
     """Tool executor that manages tool execution."""
-    
+
     def __init__(self, tools: list[Tool]):
         self.tools: dict[str, Tool] = {tool.name: tool for tool in tools}
-    
+
     async def execute_tool_call(self, tool_call: ToolCall) -> ToolResult:
         """Execute a tool call."""
         if tool_call.name not in self.tools:
@@ -132,9 +139,9 @@ class ToolExecutor:
                 call_id=tool_call.call_id,
                 id=tool_call.id
             )
-        
+
         tool = self.tools[tool_call.name]
-        
+
         try:
             tool_exec_result = await tool.execute(tool_call.arguments)
             return ToolResult(
@@ -151,11 +158,11 @@ class ToolExecutor:
                 call_id=tool_call.call_id,
                 id=tool_call.id
             )
-    
+
     async def parallel_tool_call(self, tool_calls: list[ToolCall]) -> list[ToolResult]:
         """Execute tool calls in parallel"""
         return await asyncio.gather(*[self.execute_tool_call(call) for call in tool_calls])
-    
+
     async def sequential_tool_call(self, tool_calls: list[ToolCall]) -> list[ToolResult]:
         """Execute tool calls in sequential"""
         return [await self.execute_tool_call(call) for call in tool_calls]

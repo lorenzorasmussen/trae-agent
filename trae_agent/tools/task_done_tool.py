@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from typing import override
-from trae_agent.tools.base import Tool, ToolCallArguments, ToolExecResult, ToolParameter
+from .base import Tool, ToolCallArguments, ToolExecResult, ToolParameter
 
 
 class TaskDoneTool(Tool):
@@ -11,11 +11,11 @@ class TaskDoneTool(Tool):
     @override
     def get_name(self) -> str:
         return "task_done"
-    
+
     @override
     def get_description(self) -> str:
         return "Report the completion of the task. Note that you cannot call this tool before any verfication is done. You can write reproduce / test script to verify your solution."
-    
+
     @override
     def get_parameters(self) -> list[ToolParameter]:
         return []

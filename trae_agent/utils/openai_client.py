@@ -5,41 +5,44 @@
 
 import os
 import json
+import random
+import time
 import openai
-from openai.types.responses import FunctionToolParam, ResponseFunctionToolCallParam, ResponseInputParam
+from openai.types.responses import EasyInputMessageParam, FunctionToolParam, ResponseFunctionToolCallParam, ResponseInputParam
 from openai.types.responses.response_input_param import FunctionCallOutput
 from typing import override
 
 from ..tools.base import Tool, ToolCall, ToolResult
 from ..utils.config import ModelParameters
-from .base_client import LLMUsage, LLMMessage, LLMResponse, BaseLLMClient
+from .base_client import BaseLLMClient
+from .llm_basics import LLMMessage, LLMResponse, LLMUsage
 
 
 class OpenAIClient(BaseLLMClient):
     """OpenAI client wrapper with tool schema generation."""
-    
+
     def __init__(self, model_parameters: ModelParameters):
         super().__init__(model_parameters)
-        
+
         if self.api_key == "":
             self.api_key: str = os.getenv("OPENAI_API_KEY", "")
-        
+
         if self.api_key == "":
             raise ValueError("OpenAI API key not provided. Set OPENAI_API_KEY in environment variables or config file.")
-        
+
         self.client: openai.OpenAI = openai.OpenAI(api_key=self.api_key)
         self.message_history: ResponseInputParam = []
-    
+
     @override
     def set_chat_history(self, messages: list[LLMMessage]) -> None:
         """Set the chat history."""
         self.message_history = self.parse_messages(messages)
-    
+
     @override
     def chat(self, messages: list[LLMMessage], model_parameters: ModelParameters, tools: list[Tool] | None = None, reuse_history: bool = True) -> LLMResponse:
         """Send chat messages to OpenAI with optional tool support."""
         openai_messages: ResponseInputParam = self.parse_messages(messages)
-        
+
         tool_schemas = None
         if tools:
             tool_schemas = [FunctionToolParam(
@@ -55,14 +58,27 @@ class OpenAIClient(BaseLLMClient):
         else:
             self.message_history = openai_messages
 
-        response = self.client.responses.create(
-            input=self.message_history,
-            model=model_parameters.model,
-            tools=tool_schemas if tool_schemas else openai.NOT_GIVEN,
-            temperature=model_parameters.temperature,
-            top_p=model_parameters.top_p,
-            max_output_tokens=model_parameters.max_tokens,
-        )
+        response = None
+        error_message = ""
+        for i in range(model_parameters.max_retries):
+            try:
+                response = self.client.responses.create(
+                    input=self.message_history,
+                    model=model_parameters.model,
+                    tools=tool_schemas if tool_schemas else openai.NOT_GIVEN,
+                    temperature=model_parameters.temperature,
+                    top_p=model_parameters.top_p,
+                    max_output_tokens=model_parameters.max_tokens,
+                )
+                break
+            except Exception as e:
+                error_message += f"Error {i + 1}: {str(e)}\n"
+                # Randomly sleep for 3-30 seconds
+                time.sleep(random.randint(3, 30))
+                continue
+
+        if response is None:
+            raise ValueError(f"Failed to get response from OpenAI after max retries: {error_message}")
 
         content = ""
         tool_calls: list[ToolCall] = []
@@ -71,7 +87,7 @@ class OpenAIClient(BaseLLMClient):
                 tool_calls.append(ToolCall(
                     call_id=output_block.call_id,
                     name=output_block.name,
-                    arguments=json.loads(output_block.arguments),
+                    arguments=json.loads(output_block.arguments) if output_block.arguments else {},
                     id=output_block.id
                 ))
                 tool_call_param = ResponseFunctionToolCallParam(
@@ -89,7 +105,16 @@ class OpenAIClient(BaseLLMClient):
                 for content_block in output_block.content:
                     if content_block.type == "output_text":
                         content += content_block.text
-        
+
+        if content != "":
+            self.message_history.append(
+                EasyInputMessageParam(
+                    content=content,
+                    role="assistant",
+                    type="message"
+                )
+            )
+
         usage = None
         if response.usage:
             usage = LLMUsage(
@@ -106,7 +131,7 @@ class OpenAIClient(BaseLLMClient):
             finish_reason=response.status,
             tool_calls=tool_calls if len(tool_calls) > 0 else None
         )
-        
+
         # Record trajectory if recorder is available
         if self.trajectory_recorder:
             self.trajectory_recorder.record_llm_interaction(
@@ -116,9 +141,9 @@ class OpenAIClient(BaseLLMClient):
                 model=model_parameters.model,
                 tools=tools
             )
-        
+
         return llm_response
-    
+
     @override
     def supports_tool_calling(self, model_parameters: ModelParameters) -> bool:
         """Check if the current model supports tool calling."""
@@ -171,7 +196,7 @@ class OpenAIClient(BaseLLMClient):
         if tool_call_result.error:
             result += tool_call_result.error
         result = result.strip()
-        
+
         return FunctionCallOutput(
             call_id=tool_call_result.call_id,
             id=tool_call_result.id,

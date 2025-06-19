@@ -3,15 +3,15 @@
 
 """TraeAgent for software engineering tasks."""
 
+import asyncio
 import os
 import subprocess
-from typing import override, Any
+from typing import override
 
-from trae_agent.utils.base_client import LLMMessage, LLMResponse
-from trae_agent.utils.config import ModelParameters
-
-from .base import Agent, AgentError
-from ..utils.llm_client import LLMProvider
+from .base import Agent
+from .agent_basics import AgentError, AgentExecution
+from ..utils.config import Config
+from ..utils.llm_basics import LLMMessage, LLMResponse
 from ..tools.base import Tool, ToolExecutor, ToolResult
 from ..tools import tools_registry
 
@@ -25,27 +25,27 @@ TraeAgentToolNames = [
 
 class TraeAgent(Agent):
     """Trae Agent specialized for software engineering tasks."""
-    
-    def __init__(self, llm_provider: LLMProvider, model_parameters: ModelParameters, max_steps: int = 15):
+
+    def __init__(self, config: Config):
         self.project_path: str = ""
         self.base_commit: str | None = None
         self.must_patch: str = "false"
-        super().__init__(llm_provider, model_parameters, max_steps)
-    
+        super().__init__(config)
+
     def setup_trajectory_recording(self, trajectory_path: str | None = None) -> str:
         """Set up trajectory recording for this agent.
-        
+
         Args:
             trajectory_path: Path to save trajectory file. If None, generates default path.
-            
+
         Returns:
             The path where trajectory will be saved.
         """
         from ..utils.trajectory_recorder import TrajectoryRecorder
-        
+
         recorder = TrajectoryRecorder(trajectory_path)
         self.set_trajectory_recorder(recorder)
-        
+
         # Start recording with task info
         if hasattr(self, 'task') and self.task:
             recorder.start_recording(
@@ -54,7 +54,7 @@ class TraeAgent(Agent):
                 model=self.model_parameters.model,
                 max_steps=self.max_steps
             )
-        
+
         return recorder.get_trajectory_path()
 
     @override
@@ -92,7 +92,7 @@ class TraeAgent(Agent):
                 content=user_message
                 )
             )
-        
+
         # If trajectory recorder is set, start recording
         if self.trajectory_recorder:
             self.trajectory_recorder.start_recording(
@@ -102,22 +102,29 @@ class TraeAgent(Agent):
                 max_steps=self.max_steps
             )
 
-    async def execute_task(self) -> Any:
+    @override
+    async def execute_task(self) -> AgentExecution:
         """Execute the task and finalize trajectory recording."""
+        if self.cli_console:
+            console_task = asyncio.create_task(self.cli_console.start())
+        else:
+            console_task = None
         execution = await super().execute_task()
-        
+        if self.cli_console and console_task:
+            await console_task
+
         # Finalize trajectory recording if recorder is available
         if self.trajectory_recorder:
             self.trajectory_recorder.finalize_recording(
                 success=execution.success,
                 final_result=execution.final_result
             )
-        
+
         return execution
 
     def get_system_prompt(self) -> str:
         """Get the system prompt for TraeAgent."""
-        return """You are an expert AI software engineering agent. 
+        return """You are an expert AI software engineering agent.
 Your primary goal is to resolve a given GitHub issue by navigating the provided codebase, identifying the root cause of the bug, implementing a robust fix, and ensuring your changes are safe and well-tested.
 
 Follow these steps methodically:
@@ -161,11 +168,11 @@ Follow these steps methodically:
 - Don't hesitate to use it multiple times throughout your thought process to enhance the depth and accuracy of your solutions.
 
 If you are sure the issue has been solved, you should call the `task_done` to finish the task."""
-    
+
     @override
     def reflect_on_result(self, tool_results: list[ToolResult]) -> str | None:
         return None
-    
+
     def get_git_diff(self) -> str:
         """Get the git diff of the project."""
         pwd = os.getcwd()
@@ -180,7 +187,7 @@ If you are sure the issue has been solved, you should call the `task_done` to fi
         finally:
             os.chdir(pwd)
         return stdout
-        
+
     def remove_patches_to_tests(self, model_patch: str) -> str:
         """
         Remove any changes to the tests directory from the provided patch.
@@ -220,7 +227,7 @@ If you are sure the issue has been solved, you should call the `task_done` to fi
             if tool_call.name == "task_done":
                 return True
         return False
-    
+
     @override
     def is_task_completed(self, llm_response: LLMResponse) -> bool:
         """Enhanced task completion detection."""
@@ -229,9 +236,9 @@ If you are sure the issue has been solved, you should call the `task_done` to fi
             patch = self.remove_patches_to_tests(model_patch)
             if patch.strip() == "":
                 return False
-        
+
         return True
-        
+
     @override
     def task_incomplete_message(self) -> str:
         """Return a message indicating that the task is incomplete."""

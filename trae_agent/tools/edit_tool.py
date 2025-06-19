@@ -29,7 +29,7 @@ class TextEditorTool(Tool):
     @override
     def get_name(self) -> str:
         return "str_replace_based_edit_tool"
-    
+
     @override
     def get_description(self) -> str:
         return """Custom editing tool for viewing, creating and editing files
@@ -43,7 +43,7 @@ Notes for using the `str_replace` command:
 * If the `old_str` parameter is not unique in the file, the replacement will not be performed. Make sure to include enough context in `old_str` to make it unique
 * The `new_str` parameter should contain the edited lines that should replace the `old_str`
 """
-    
+
     @override
     def get_parameters(self) -> list[ToolParameter]:
         """Get the parameters for the str_replace_based_edit_tool."""
@@ -110,7 +110,7 @@ Notes for using the `str_replace` command:
 
             if command == "view":
                 view_range = arguments["view_range"] if "view_range" in arguments else None
-                return await self.view(_path, view_range)
+                return await self.view(_path, view_range) # pyright: ignore[reportArgumentType]
             elif command == "create":
                 file_text = arguments.get("file_text") if "file_text" in arguments else None
                 if file_text is None:
@@ -118,7 +118,7 @@ Notes for using the `str_replace` command:
                         error=f"Parameter `file_text` is required for command: create",
                         error_code=-1
                     )
-                self.write_file(_path, file_text)
+                self.write_file(_path, file_text) # pyright: ignore[reportArgumentType]
                 return ToolExecResult(
                     output=f"File created successfully at: {_path}"
                 )
@@ -130,7 +130,7 @@ Notes for using the `str_replace` command:
                         error_code=-1
                     )
                 new_str = arguments.get("new_str") if "new_str" in arguments else None
-                return self.str_replace(_path, old_str, new_str)
+                return self.str_replace(_path, old_str, new_str) # pyright: ignore[reportArgumentType]
             elif command == "insert":
                 insert_line = arguments.get("insert_line") if "insert_line" in arguments else None
                 if insert_line is None:
@@ -144,7 +144,7 @@ Notes for using the `str_replace` command:
                         error=f"Parameter `new_str` is required for command: insert",
                         error_code=-1
                     )
-                return self.insert(_path, insert_line, new_str_to_insert)
+                return self.insert(_path, insert_line, new_str_to_insert) # pyright: ignore[reportArgumentType]
             else:
                 return ToolExecResult(
                     error=f"Unrecognized command {command}. The allowed commands for the {self.name} tool are: {', '.join(EditToolSubCommands)}",
@@ -194,7 +194,7 @@ Notes for using the `str_replace` command:
         file_content = self.read_file(path)
         init_line = 1
         if view_range:
-            if len(view_range) != 2 or not all(isinstance(i, int) for i in view_range):
+            if len(view_range) != 2 or not all(isinstance(i, int) for i in view_range): # pyright: ignore[reportUnnecessaryIsInstance]
                 raise ToolError(
                     "Invalid `view_range`. It should be a list of two integers."
                 )
@@ -221,7 +221,7 @@ Notes for using the `str_replace` command:
 
         return ToolExecResult(
             output=self._make_output(file_content, str(path), init_line=init_line)
-        ) 
+        )
 
     def str_replace(self, path: Path, old_str: str, new_str: str | None) -> ToolExecResult:
         """Implement the str_replace command, which replaces old_str with new_str in the file content"""

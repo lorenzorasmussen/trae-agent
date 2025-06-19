@@ -13,6 +13,7 @@
 
 ## ✨ Features
 
+- 🌊 **Lakeview**: Provides short and concise summarisation for agent steps
 - 🤖 **Multi-LLM Support**: Works with OpenAI and Anthropic official APIs
 - 🛠️ **Rich Tool Ecosystem**: File editing, bash execution, sequential thinking, and more
 - 🎯 **Interactive Mode**: Conversational interface for iterative development
@@ -32,16 +33,11 @@ cd trae-agent
 uv sync
 ```
 
-```bash
-# Install from source
-git clone <repository-url>
-cd trae-agent
-pip install -e .
-```
-
 ### Setup API Keys
 
-Set your API keys as environment variables:
+We recommand to configure Trae Agent using the config file.
+
+You can also set your API keys as environment variables:
 
 ```bash
 # For OpenAI
@@ -51,22 +47,11 @@ export OPENAI_API_KEY="your-openai-api-key"
 export ANTHROPIC_API_KEY="your-anthropic-api-key"
 ```
 
-This can also be configured using the trae_config.json file.
-
 ### Basic Usage
 
 ```bash
 # Run a simple task
-trae run "Create a hello world Python script"
-
-# Start interactive mode
-trae interactive
-
-# Show available tools
-trae tools
-
-# Show current configuration
-trae show-config
+trae-cli run "Create a hello world Python script"
 ```
 
 ## 📖 Usage
@@ -79,29 +64,29 @@ The main entry point is the `trae` command with several subcommands:
 
 ```bash
 # Basic task execution
-trae run "Create a Python script that calculates fibonacci numbers"
+trae-cli run "Create a Python script that calculates fibonacci numbers"
 
 # With specific provider and model
-trae run "Fix the bug in main.py" --provider anthropic --model claude-sonnet-4-20250514
+trae-cli run "Fix the bug in main.py" --provider anthropic --model claude-sonnet-4-20250514
 
 # With custom working directory
-trae run "Add unit tests for the utils module" --working-dir /path/to/project
+trae-cli run "Add unit tests for the utils module" --working-dir /path/to/project
 
 # Save trajectory for debugging
-trae run "Refactor the database module" --trajectory-file debug_session.json
+trae-cli run "Refactor the database module" --trajectory-file debug_session.json
 
 # Force to generate patches
-trae run "Update the API endpoints" --must-patch
+trae-cli run "Update the API endpoints" --must-patch
 ```
 
 #### `trae interactive` - Interactive Mode
 
 ```bash
 # Start interactive session
-trae interactive
+trae-cli interactive
 
 # With custom configuration
-trae interactive --provider openai --model gpt-4o --max-steps 30
+trae-cli interactive --provider openai --model gpt-4o --max-steps 30
 ```
 
 In interactive mode, you can:
@@ -114,10 +99,10 @@ In interactive mode, you can:
 #### `trae show-config` - Configuration Status
 
 ```bash
-trae show-config
+trae-cli show-config
 
 # With custom config file
-trae show-config --config-file my_config.json
+trae-cli show-config --config-file my_config.json
 ```
 
 ### Configuration
@@ -189,11 +174,11 @@ Trae Agent automatically records detailed execution trajectories for debugging a
 
 ```bash
 # Auto-generated trajectory file
-trae run "Debug the authentication module"
+trae-cli run "Debug the authentication module"
 # Saves to: trajectory_20250612_220546.json
 
 # Custom trajectory file
-trae run "Optimize the database queries" --trajectory-file optimization_debug.json
+trae-cli-cliae run "Optimize the database queries" --trajectory-file optimization_debug.json
 ```
 
 Trajectory files contain:
@@ -235,7 +220,7 @@ For more details, see [TRAJECTORY_RECORDING.md](TRAJECTORY_RECORDING.md).
 **Import Errors:**
 ```bash
 # Try setting PYTHONPATH
-PYTHONPATH=. trae run "your task"
+PYTHONPATH=. trae-cli run "your task"
 ```
 
 **API Key Issues:**
