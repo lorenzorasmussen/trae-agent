@@ -219,7 +219,8 @@ class CLIConsole:
 
         if current_step is not None:
             panels.append(self._create_step_display(current_step))
-
+        # reorder panels
+        panels = panels[::-1]
         return Group(*panels, fit=False)
 
     def print_task_progress(self):

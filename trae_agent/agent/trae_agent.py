@@ -30,6 +30,7 @@ class TraeAgent(Agent):
         self.project_path: str = ""
         self.base_commit: str | None = None
         self.must_patch: str = "false"
+        self.patch_path: str | None = None
         super().__init__(config)
 
     def setup_trajectory_recording(self, trajectory_path: str | None = None) -> str:
@@ -83,6 +84,8 @@ class TraeAgent(Agent):
                 self.base_commit = extra_args['base_commit']
             if "must_patch" in extra_args:
                 self.must_patch = extra_args['must_patch']
+            if "patch_path" in extra_args:
+                self.patch_path = extra_args['patch_path']
         else:
             raise AgentError("Project path and issue information are required.")
 
@@ -110,7 +113,7 @@ class TraeAgent(Agent):
         else:
             console_task = None
         execution = await super().execute_task()
-        if self.cli_console and console_task:
+        if self.cli_console and console_task and not console_task.done():
             await console_task
 
         # Finalize trajectory recording if recorder is available
@@ -119,6 +122,10 @@ class TraeAgent(Agent):
                 success=execution.success,
                 final_result=execution.final_result
             )
+
+        if self.patch_path is not None:
+            with open(self.patch_path, 'w') as patch_f:
+                patch_f.write(self.get_git_diff())
 
         return execution
 

@@ -65,6 +65,7 @@ class TrajectoryRecorder:
             "llm_interactions": [],
             "agent_steps": []
         })
+        self.save_trajectory()
 
     def record_llm_interaction(self,
                               messages: list[LLMMessage],
@@ -103,6 +104,7 @@ class TrajectoryRecorder:
         }
 
         self.trajectory_data["llm_interactions"].append(interaction)
+        self.save_trajectory()
 
     def record_agent_step(self,
                          step_number: int,
@@ -147,6 +149,7 @@ class TrajectoryRecorder:
         }
 
         self.trajectory_data["agent_steps"].append(step_data)
+        self.save_trajectory()
 
     def finalize_recording(self, success: bool, final_result: str | None = None) -> None:
         """Finalize the trajectory recording.

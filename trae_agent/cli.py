@@ -66,6 +66,7 @@ def create_agent(config: Config) -> TraeAgent:
 
     except Exception as e:
         console.print(f"[red]Error creating agent: {e}[/red]")
+        console.print(traceback.format_exc())
         sys.exit(1)
 
 
@@ -89,9 +90,10 @@ def cli():
 @click.option('--must-patch', '-mp', is_flag=True, help='Whether to patch the code')
 @click.option('--config-file', help='Path to configuration file', default='trae_config.json')
 @click.option('--trajectory-file', '-t', help='Path to save trajectory file')
+@click.option('--patch-path', '-pp', help='Path to patch file')
 def run(task: str, provider: str | None = None, model: str | None = None, api_key: str | None = None,
         max_steps: int | None = None,         working_dir: str | None = None, must_patch: bool = False,
-        config_file: str = "trae_config.json", trajectory_file: str | None = None):
+        config_file: str = "trae_config.json", trajectory_file: str | None = None, patch_path: str | None = None):
     """Run a task using Trae Agent.
 
     TASK: Description of the task to execute
@@ -106,6 +108,10 @@ def run(task: str, provider: str | None = None, model: str | None = None, api_ke
         except Exception as e:
             console.print(f"[red]Error changing directory: {e}[/red]")
             sys.exit(1)
+
+    task_path = Path(task)
+    if task_path.exists() and task_path.is_file:
+        task = task_path.read_text()
 
     config = load_config(provider, model, api_key, config_file, max_steps)
 
@@ -129,7 +135,8 @@ def run(task: str, provider: str | None = None, model: str | None = None, api_ke
         task_args = {
             "project_path": working_dir,
             "issue": task,
-            "must_patch": "true" if must_patch else "false"
+            "must_patch": "true" if must_patch else "false",
+            "patch_path": patch_path
         }
         agent.new_task(task, task_args)
         _ = asyncio.run(agent.execute_task())

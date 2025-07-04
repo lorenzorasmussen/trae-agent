@@ -151,6 +151,8 @@ class Agent(ABC):
 
 
                                 messages.append(LLMMessage(role="assistant", content=reflection))
+                        else:
+                            messages=[LLMMessage(role="user", content="It seems that you have not completed the task.")]
 
 
                     # Record agent step
