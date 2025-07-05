@@ -20,7 +20,9 @@ from dotenv import load_dotenv
 from trae_agent.utils.cli_console import CLIConsole
 
 from .agent import TraeAgent
-from .utils.config import Config, resolve_config_value
+from .utils.config import (
+    Config, resolve_config_value, provider_to_providerAPI
+)
 
 # Load environment variables
 _ = load_dotenv()
@@ -57,8 +59,7 @@ def load_config(provider: str | None = None, model: str | None = None, api_key: 
     resolved_api_key = resolve_config_value(
         api_key,
         config.model_providers[str(resolved_provider)].api_key,
-        # TODO: Shall we use a more robust method ? This would be much more convience to support more providers
-        "OPENAI_API_KEY" if resolved_provider == "openai" else "ANTHROPIC_API_KEY"
+        provider_to_providerAPI(resolved_provider)
     )
     if resolved_api_key is not None:
         # If None shall we stop the program ? 
