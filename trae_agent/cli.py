@@ -118,6 +118,11 @@ def run(task: str, provider: str | None = None, model: str | None = None, api_ke
         Run is the main function of tace. It runs a task using Trae Agent.
         Args:
             tasks: the task that you want your agent to solve. This is required to be in the input
+            model: the model expected to be use 
+            working_dir: the working directory of the agent. This should be set either in cli or inf the config file (trae_config.json)
+
+        Return: 
+            None (it is expected to be ended after calling the run function)
 
     TASK: Description of the task to execute
     """
