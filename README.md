@@ -56,7 +56,7 @@ trae-cli run "Create a hello world Python script"
 
 ## 📖 Usage
 
-### Command Line Interface
+### Commend Line Interface
 
 The main entry point is the `trae` command with several subcommands:
 
@@ -178,7 +178,7 @@ trae-cli run "Debug the authentication module"
 # Saves to: trajectory_20250612_220546.json
 
 # Custom trajectory file
-trae-cli-cliae run "Optimize the database queries" --trajectory-file optimization_debug.json
+trae-cli run "Optimize the database queries" --trajectory-file optimization_debug.json
 ```
 
 Trajectory files contain:
