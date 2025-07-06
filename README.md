@@ -35,7 +35,7 @@ uv sync
 
 ### Setup API Keys
 
-We recommand to configure Trae Agent using the config file.
+We recommend to configure Trae Agent using the config file.
 
 You can also set your API keys as environment variables:
 
@@ -122,7 +122,7 @@ Trae Agent uses a JSON configuration file (`trae_config.json`) for settings:
       "top_p": 1
     },
     "anthropic": {
-      "api_key": "your_anthropic_api_key", 
+      "api_key": "your_anthropic_api_key",
       "model": "claude-sonnet-4-20250514",
       "max_tokens": 4096,
       "temperature": 0.5,

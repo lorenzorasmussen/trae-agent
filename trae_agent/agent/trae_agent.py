@@ -19,7 +19,7 @@ TraeAgentToolNames = [
     "str_replace_based_edit_tool",
     "sequentialthinking",
     "task_done",
-    "bash"
+    "bash",
 ]
 
 
@@ -48,53 +48,59 @@ class TraeAgent(Agent):
         self.set_trajectory_recorder(recorder)
 
         # Start recording with task info
-        if hasattr(self, 'task') and self.task:
+        if hasattr(self, "task") and self.task:
             recorder.start_recording(
                 task=self.task,
                 provider=self.llm_client.provider.value,
                 model=self.model_parameters.model,
-                max_steps=self.max_steps
+                max_steps=self.max_steps,
             )
 
         return recorder.get_trajectory_path()
 
     @override
-    def new_task(self, task: str, extra_args: dict[str, str] | None = None, tool_names: list[str] | None = None):
+    def new_task(
+        self,
+        task: str,
+        extra_args: dict[str, str] | None = None,
+        tool_names: list[str] | None = None,
+    ):
         """Create a new task."""
         self.task: str = task
 
         if tool_names is None:
             tool_names = TraeAgentToolNames
-        self.tools: list[Tool] = [tools_registry[tool_name]() for tool_name in tool_names]
+        self.tools: list[Tool] = [
+            tools_registry[tool_name]() for tool_name in tool_names
+        ]
         self.tool_caller: ToolExecutor = ToolExecutor(self.tools)
 
         self.initial_messages: list[LLMMessage] = []
-        self.initial_messages.append(LLMMessage(role="system", content=self.get_system_prompt()))
+        self.initial_messages.append(
+            LLMMessage(role="system", content=self.get_system_prompt())
+        )
 
         user_message = ""
         if extra_args:
             if "project_path" in extra_args:
-                user_message += f"[Project root path]:\n{extra_args['project_path']}\n\n"
-                self.project_path = extra_args['project_path']
+                user_message += (
+                    f"[Project root path]:\n{extra_args['project_path']}\n\n"
+                )
+                self.project_path = extra_args["project_path"]
             else:
                 raise AgentError("Project path is required")
             if "issue" in extra_args:
                 user_message += f"[Problem statement]: We're currently solving the following issue within our repository. Here's the issue text:\n{extra_args['issue']}\n"
             if "base_commit" in extra_args:
-                self.base_commit = extra_args['base_commit']
+                self.base_commit = extra_args["base_commit"]
             if "must_patch" in extra_args:
-                self.must_patch = extra_args['must_patch']
+                self.must_patch = extra_args["must_patch"]
             if "patch_path" in extra_args:
-                self.patch_path = extra_args['patch_path']
+                self.patch_path = extra_args["patch_path"]
         else:
             raise AgentError("Project path and issue information are required.")
 
-        self.initial_messages.append(
-            LLMMessage(
-                role="user",
-                content=user_message
-                )
-            )
+        self.initial_messages.append(LLMMessage(role="user", content=user_message))
 
         # If trajectory recorder is set, start recording
         if self.trajectory_recorder:
@@ -102,7 +108,7 @@ class TraeAgent(Agent):
                 task=task,
                 provider=self.llm_client.provider.value,
                 model=self.model_parameters.model,
-                max_steps=self.max_steps
+                max_steps=self.max_steps,
             )
 
     @override
@@ -119,12 +125,11 @@ class TraeAgent(Agent):
         # Finalize trajectory recording if recorder is available
         if self.trajectory_recorder:
             self.trajectory_recorder.finalize_recording(
-                success=execution.success,
-                final_result=execution.final_result
+                success=execution.success, final_result=execution.final_result
             )
 
         if self.patch_path is not None:
-            with open(self.patch_path, 'w') as patch_f:
+            with open(self.patch_path, "w") as patch_f:
                 patch_f.write(self.get_git_diff())
 
         return execution
@@ -186,10 +191,12 @@ If you are sure the issue has been solved, you should call the `task_done` to fi
         os.chdir(self.project_path)
         try:
             if not self.base_commit:
-                stdout = subprocess.check_output(['git', '--no-pager', 'diff']).decode()
+                stdout = subprocess.check_output(["git", "--no-pager", "diff"]).decode()
             else:
-                stdout = subprocess.check_output(['git', '--no-pager', 'diff', self.base_commit, 'HEAD']).decode()
-        except:
+                stdout = subprocess.check_output(
+                    ["git", "--no-pager", "diff", self.base_commit, "HEAD"]
+                ).decode()
+        except:  # noqa: E722
             stdout = ""
         finally:
             os.chdir(pwd)
@@ -249,4 +256,6 @@ If you are sure the issue has been solved, you should call the `task_done` to fi
     @override
     def task_incomplete_message(self) -> str:
         """Return a message indicating that the task is incomplete."""
-        return "ERROR! Your Patch is empty. Please provide a patch that fixes the problem."
+        return (
+            "ERROR! Your Patch is empty. Please provide a patch that fixes the problem."
+        )

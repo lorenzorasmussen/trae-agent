@@ -11,8 +11,10 @@ from .trajectory_recorder import TrajectoryRecorder
 from .base_client import BaseLLMClient
 from .llm_basics import LLMMessage, LLMResponse
 
+
 class LLMProvider(Enum):
     """Supported LLM providers."""
+
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     AZURE = "azure"
@@ -29,12 +31,15 @@ class LLMClient:
 
         if provider == LLMProvider.OPENAI:
             from .openai_client import OpenAIClient
+
             self.client: BaseLLMClient = OpenAIClient(model_parameters)
         elif provider == LLMProvider.ANTHROPIC:
             from .anthropic_client import AnthropicClient
+
             self.client = AnthropicClient(model_parameters)
         elif provider == LLMProvider.AZURE:
             from .azure_client import AzureClient
+
             self.client = AzureClient(model_parameters)
 
     def set_trajectory_recorder(self, recorder: TrajectoryRecorder | None) -> None:
@@ -45,10 +50,18 @@ class LLMClient:
         """Set the chat history."""
         self.client.set_chat_history(messages)
 
-    def chat(self, messages: list[LLMMessage], model_parameters: ModelParameters, tools: list[Tool] | None = None, reuse_history: bool = True) -> LLMResponse:
+    def chat(
+        self,
+        messages: list[LLMMessage],
+        model_parameters: ModelParameters,
+        tools: list[Tool] | None = None,
+        reuse_history: bool = True,
+    ) -> LLMResponse:
         """Send chat messages to the LLM."""
         return self.client.chat(messages, model_parameters, tools, reuse_history)
 
     def supports_tool_calling(self, model_parameters: ModelParameters) -> bool:
         """Check if the current client supports tool calling."""
-        return hasattr(self.client, 'supports_tool_calling') and self.client.supports_tool_calling(model_parameters)
+        return hasattr(
+            self.client, "supports_tool_calling"
+        ) and self.client.supports_tool_calling(model_parameters)

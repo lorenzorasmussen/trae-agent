@@ -9,12 +9,13 @@ from .config import Config, ModelParameters
 
 
 StepType = tuple[
-    str, # content for human (will write into result file)
-    str | None, # content for llm, or None if no need to analyze (i.e., minor step), watch out length limit
+    str,  # content for human (will write into result file)
+    str
+    | None,  # content for llm, or None if no need to analyze (i.e., minor step), watch out length limit
 ]
 
 
-EXTRACTOR_PROMPT = '''
+EXTRACTOR_PROMPT = """
 Given the preceding excerpt, your job is to determine "what task is the agent performing in <this_step>".
 Output your answer in two granularities: <task>...</task><details>...</details>.
 In the <task> tag, the answer should be concise and general. It should omit ANY bug-specific details, and contain at most 10 words.
@@ -28,9 +29,9 @@ Examples:
 
 Now, answer the question "what task is the agent performing in <this_step>".
 Again, provide only the answer with no other commentary. The format should be "<task>...</task><details>...</details>".
-'''
+"""
 
-TAGGER_PROMPT = '''
+TAGGER_PROMPT = """
 Given the trajectory, your job is to determine "what task is the agent performing in the current step".
 Output your answer by choosing the applicable tags in the below list for the current step.
 If it is performing multiple tasks in one step, choose ALL applicable tags, separated by a comma.
@@ -53,17 +54,28 @@ If the agent is merely thinking about the root cause of the bug without other ac
 </examples>
 
 Output only the tags with no other commentary. The format should be <tags>...</tags>
-'''
+"""
 
-KNOWN_TAGS = {'WRITE_TEST': '☑️', 'VERIFY_TEST': '✅', 'EXAMINE_CODE': '👁️', 'WRITE_FIX': '📝', 'VERIFY_FIX': '🔥', 'REPORT': '📣', 'THINK': '🧠', 'OUTLIER': '⁉️'}
+KNOWN_TAGS = {
+    "WRITE_TEST": "☑️",
+    "VERIFY_TEST": "✅",
+    "EXAMINE_CODE": "👁️",
+    "WRITE_FIX": "📝",
+    "VERIFY_FIX": "🔥",
+    "REPORT": "📣",
+    "THINK": "🧠",
+    "OUTLIER": "⁉️",
+}
 
-tags_re = re.compile(r'<tags>([A-Z_,\s]+)</tags>')
+tags_re = re.compile(r"<tags>([A-Z_,\s]+)</tags>")
+
 
 @dataclass
 class LakeViewStep:
     desc_task: str
     desc_details: str
     tags_emoji: str
+
 
 class LakeView:
     def __init__(self, config: Config):
@@ -83,36 +95,31 @@ class LakeView:
             base_url=model_parameters.base_url,
             api_version=model_parameters.api_version,
         )
-        self.lakeview_llm_client: LLMClient = LLMClient(config.lakeview_config.model_provider, self.model_parameters)
+        self.lakeview_llm_client: LLMClient = LLMClient(
+            config.lakeview_config.model_provider, self.model_parameters
+        )
 
         self.steps: list[str] = []
 
-
-    def get_label(self, tags: None|list[str], emoji: bool = True) -> str:
+    def get_label(self, tags: None | list[str], emoji: bool = True) -> str:
         if not tags:
-            return ''
+            return ""
 
-        return " · ".join([
-            KNOWN_TAGS[tag] + tag if emoji else tag for tag in tags
-        ])
+        return " · ".join([KNOWN_TAGS[tag] + tag if emoji else tag for tag in tags])
 
-    async def extract_task_in_step(self, prev_step: str, this_step: str) -> tuple[str, str]:
+    async def extract_task_in_step(
+        self, prev_step: str, this_step: str
+    ) -> tuple[str, str]:
         llm_messages = [
             LLMMessage(
                 role="user",
-                content=f"The following is an excerpt of the steps trying to solve a software bug by an AI agent: <previous_step>{prev_step}</previous_step><this_step>{this_step}</this_step>"
+                content=f"The following is an excerpt of the steps trying to solve a software bug by an AI agent: <previous_step>{prev_step}</previous_step><this_step>{this_step}</this_step>",
             ),
+            LLMMessage(role="assistant", content="I understand."),
+            LLMMessage(role="user", content=EXTRACTOR_PROMPT),
             LLMMessage(
                 role="assistant",
-                content="I understand."
-            ),
-            LLMMessage(
-                role="user",
-                content=EXTRACTOR_PROMPT
-            ),
-            LLMMessage(
-                role="assistant",
-                content="Sure. Here is the task the agent is performing: <task>The agent"
+                content="Sure. Here is the task the agent is performing: <task>The agent",
             ),
         ]
 
@@ -120,32 +127,43 @@ class LakeView:
         llm_response = self.lakeview_llm_client.chat(
             model_parameters=self.model_parameters,
             messages=llm_messages,
-            reuse_history=False
+            reuse_history=False,
         )
 
         content = llm_response.content.strip()
 
         retry = 0
-        while retry < 10 and \
-            ('</task>' not in content or '<details>' not in content or '</details>' not in content):
+        while retry < 10 and (
+            "</task>" not in content
+            or "<details>" not in content
+            or "</details>" not in content
+        ):
             retry += 1
             llm_response = self.lakeview_llm_client.chat(
                 model_parameters=self.model_parameters,
                 messages=llm_messages,
-                reuse_history=False
+                reuse_history=False,
             )
             content = llm_response.content.strip()
 
-        if '</task>' not in content or '<details>' not in content or '</details>' not in content:
-            return '', ''
+        if (
+            "</task>" not in content
+            or "<details>" not in content
+            or "</details>" not in content
+        ):
+            return "", ""
 
-        desc_task, _, desc_details = content.rpartition('</task>')
-        desc_details = desc_details.replace("<details>", "[italic]").replace("</details>", "[/italic]")
+        desc_task, _, desc_details = content.rpartition("</task>")
+        desc_details = desc_details.replace("<details>", "[italic]").replace(
+            "</details>", "[/italic]"
+        )
         return desc_task, desc_details
 
-
     async def extract_tag_in_step(self, step: str) -> list[str]:
-        steps_fmt = '\n\n'.join(f'<step id="{ind+1}">\n{s.strip()}\n</step>' for ind, s in enumerate(self.steps))
+        steps_fmt = "\n\n".join(
+            f'<step id="{ind + 1}">\n{s.strip()}\n</step>'
+            for ind, s in enumerate(self.steps)
+        )
 
         if len(steps_fmt) > 300_000:
             # step_fmt is too long, skip tagging
@@ -154,20 +172,11 @@ class LakeView:
         llm_messages = [
             LLMMessage(
                 role="user",
-                content=f'Below is the trajectory of an AI agent solving a software bug until the current step. Each step is marked within a <step> tag.\n\n{steps_fmt}\n\n<current_step>{step}</current_step>'
+                content=f"Below is the trajectory of an AI agent solving a software bug until the current step. Each step is marked within a <step> tag.\n\n{steps_fmt}\n\n<current_step>{step}</current_step>",
             ),
-            LLMMessage(
-                role="assistant",
-                content="I understand."
-            ),
-            LLMMessage(
-                role="user",
-                content=TAGGER_PROMPT
-            ),
-            LLMMessage(
-                role="assistant",
-                content="Sure. The tags are: <tags>"
-            )
+            LLMMessage(role="assistant", content="I understand."),
+            LLMMessage(role="user", content=TAGGER_PROMPT),
+            LLMMessage(role="assistant", content="Sure. The tags are: <tags>"),
         ]
         self.model_parameters.temperature = 0.1
 
@@ -176,14 +185,14 @@ class LakeView:
             llm_response = self.lakeview_llm_client.chat(
                 model_parameters=self.model_parameters,
                 messages=llm_messages,
-                reuse_history=False
+                reuse_history=False,
             )
 
-            content = '<tags>' + llm_response.content.lstrip()
+            content = "<tags>" + llm_response.content.lstrip()
 
             matched_tags: list[str] = tags_re.findall(content)
-            tags: list[str] = [tag.strip() for tag in matched_tags[0].split(',')]
-            if all(tag in KNOWN_TAGS.keys() for tag in tags):
+            tags: list[str] = [tag.strip() for tag in matched_tags[0].split(",")]
+            if all(tag in KNOWN_TAGS for tag in tags):
                 return tags
 
             retry += 1
@@ -196,25 +205,26 @@ class LakeView:
 
         content = agent_step.llm_response.content.strip()
 
-        tool_calls_content = ''
+        tool_calls_content = ""
         if agent_step.llm_response.tool_calls is not None:
             for tool_call in agent_step.llm_response.tool_calls:
-                tool_calls_content += f'[`{tool_call.name}`] `{tool_call.arguments}`\n'
+                tool_calls_content += f"[`{tool_call.name}`] `{tool_call.arguments}`\n"
             tool_calls_content = tool_calls_content.strip()
             content = f"{content}\n\nTool calls:\n{tool_calls_content}"
 
         return content
 
-
     async def create_lakeview_step(self, agent_step: AgentStep) -> LakeViewStep | None:
-        previous_step_str = '(none)'
+        previous_step_str = "(none)"
         if len(self.steps) > 1:
             previous_step_str = self.steps[-1]
 
         this_step_str = self._agent_step_str(agent_step)
 
         if this_step_str:
-            desc_task, desc_details = await self.extract_task_in_step(previous_step_str, this_step_str)
+            desc_task, desc_details = await self.extract_task_in_step(
+                previous_step_str, this_step_str
+            )
             tags = await self.extract_tag_in_step(this_step_str)
             tags_emoji = self.get_label(tags)
             return LakeViewStep(desc_task, desc_details, tags_emoji)

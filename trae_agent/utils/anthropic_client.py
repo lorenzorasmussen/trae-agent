@@ -16,6 +16,7 @@ from ..utils.config import ModelParameters
 from ..utils.llm_basics import LLMMessage, LLMResponse, LLMUsage
 from .base_client import BaseLLMClient
 
+
 class AnthropicClient(BaseLLMClient):
     """Anthropic client wrapper with tool schema generation."""
 
@@ -26,7 +27,9 @@ class AnthropicClient(BaseLLMClient):
             self.api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
 
         if self.api_key == "":
-            raise ValueError("Anthropic API key not provided. Set ANTHROPIC_API_KEY in environment variables or config file.")
+            raise ValueError(
+                "Anthropic API key not provided. Set ANTHROPIC_API_KEY in environment variables or config file."
+            )
 
         self.client: anthropic.Anthropic = anthropic.Anthropic(api_key=self.api_key)
         self.message_history: list[anthropic.types.MessageParam] = []
@@ -38,10 +41,18 @@ class AnthropicClient(BaseLLMClient):
         self.message_history = self.parse_messages(messages)
 
     @override
-    def chat(self, messages: list[LLMMessage], model_parameters: ModelParameters, tools: list[Tool] | None = None, reuse_history: bool = True) -> LLMResponse:
+    def chat(
+        self,
+        messages: list[LLMMessage],
+        model_parameters: ModelParameters,
+        tools: list[Tool] | None = None,
+        reuse_history: bool = True,
+    ) -> LLMResponse:
         """Send chat messages to Anthropic with optional tool support."""
         # Convert messages to Anthropic format
-        anthropic_messages : list[anthropic.types.MessageParam] = self.parse_messages(messages)
+        anthropic_messages: list[anthropic.types.MessageParam] = self.parse_messages(
+            messages
+        )
 
         if reuse_history:
             self.message_history = self.message_history + anthropic_messages
@@ -49,21 +60,23 @@ class AnthropicClient(BaseLLMClient):
             self.message_history = anthropic_messages
 
         # Add tools if provided
-        tool_schemas: list[anthropic.types.ToolUnionParam] | anthropic.NotGiven = anthropic.NOT_GIVEN
+        tool_schemas: list[anthropic.types.ToolUnionParam] | anthropic.NotGiven = (
+            anthropic.NOT_GIVEN
+        )
         if tools:
             tool_schemas = []
             for tool in tools:
                 if tool.name == "str_replace_based_edit_tool":
-                    tool_schemas.append(TextEditor20250429(
+                    tool_schemas.append(
+                        TextEditor20250429(
                             name="str_replace_based_edit_tool",
-                            type="text_editor_20250429"
+                            type="text_editor_20250429",
                         )
                     )
                 elif tool.name == "bash":
                     tool_schemas.append(
                         anthropic.types.ToolBash20250124Param(
-                            name="bash",
-                            type="bash_20250124"
+                            name="bash", type="bash_20250124"
                         )
                     )
                 else:
@@ -71,7 +84,7 @@ class AnthropicClient(BaseLLMClient):
                         anthropic.types.ToolParam(
                             name=tool.name,
                             description=tool.description,
-                            input_schema=tool.get_input_schema()
+                            input_schema=tool.get_input_schema(),
                         )
                     )
 
@@ -97,7 +110,9 @@ class AnthropicClient(BaseLLMClient):
                 continue
 
         if response is None:
-            raise ValueError(f"Failed to get response from Anthropic after max retries: {error_message}")
+            raise ValueError(
+                f"Failed to get response from Anthropic after max retries: {error_message}"
+            )
 
         # Handle tool calls in response
         content = ""
@@ -106,27 +121,32 @@ class AnthropicClient(BaseLLMClient):
         for content_block in response.content:
             if content_block.type == "text":
                 content += content_block.text
-                self.message_history.append(anthropic.types.MessageParam(
-                    role="assistant",
-                    content=content_block.text
-                ))
+                self.message_history.append(
+                    anthropic.types.MessageParam(
+                        role="assistant", content=content_block.text
+                    )
+                )
             elif content_block.type == "tool_use":
-                tool_calls.append(ToolCall(
-                    call_id=content_block.id,
-                    name=content_block.name,
-                    arguments=content_block.input # pyright: ignore[reportArgumentType]
-                ))
-                self.message_history.append(anthropic.types.MessageParam(
-                    role="assistant",
-                    content=[content_block]
-                ))
+                tool_calls.append(
+                    ToolCall(
+                        call_id=content_block.id,
+                        name=content_block.name,
+                        arguments=content_block.input,  # pyright: ignore[reportArgumentType]
+                    )
+                )
+                self.message_history.append(
+                    anthropic.types.MessageParam(
+                        role="assistant", content=[content_block]
+                    )
+                )
 
         usage = None
         if response.usage:
             usage = LLMUsage(
                 input_tokens=response.usage.input_tokens,
                 output_tokens=response.usage.output_tokens,
-                cache_creation_input_tokens=response.usage.cache_creation_input_tokens or 0,
+                cache_creation_input_tokens=response.usage.cache_creation_input_tokens
+                or 0,
                 cache_read_input_tokens=response.usage.cache_read_input_tokens or 0,
             )
 
@@ -135,7 +155,7 @@ class AnthropicClient(BaseLLMClient):
             usage=usage,
             model=response.model,
             finish_reason=response.stop_reason,
-            tool_calls=tool_calls if len(tool_calls) > 0 else None
+            tool_calls=tool_calls if len(tool_calls) > 0 else None,
         )
 
         # Record trajectory if recorder is available
@@ -145,7 +165,7 @@ class AnthropicClient(BaseLLMClient):
                 response=llm_response,
                 provider="anthropic",
                 model=model_parameters.model,
-                tools=tools
+                tools=tools,
             )
 
         return llm_response
@@ -154,29 +174,41 @@ class AnthropicClient(BaseLLMClient):
     def supports_tool_calling(self, model_parameters: ModelParameters) -> bool:
         """Check if the current model supports tool calling."""
         tool_capable_models = [
-            "claude-3-opus", "claude-3-sonnet", "claude-3-haiku",
-            "claude-3-5-opus", "claude-3-5-sonnet", "claude-3-5-haiku",
+            "claude-3-opus",
+            "claude-3-sonnet",
+            "claude-3-haiku",
+            "claude-3-5-opus",
+            "claude-3-5-sonnet",
+            "claude-3-5-haiku",
             "claude-3-7-sonnet",
-            "claude-4-opus", "claude-4-sonnet"
+            "claude-4-opus",
+            "claude-4-sonnet",
         ]
         return any(model in model_parameters.model for model in tool_capable_models)
 
-    def parse_messages(self, messages: list[LLMMessage]) -> list[anthropic.types.MessageParam]:
+    def parse_messages(
+        self, messages: list[LLMMessage]
+    ) -> list[anthropic.types.MessageParam]:
         """Parse the messages to Anthropic format."""
         anthropic_messages: list[anthropic.types.MessageParam] = []
         for msg in messages:
             if msg.role == "system":
-                self.system_message = msg.content if msg.content else anthropic.NOT_GIVEN
+                self.system_message = (
+                    msg.content if msg.content else anthropic.NOT_GIVEN
+                )
             elif msg.tool_result:
-                anthropic_messages.append(anthropic.types.MessageParam(
-                    role="user",
-                    content=[self.parse_tool_call_result(msg.tool_result)]
-                ))
+                anthropic_messages.append(
+                    anthropic.types.MessageParam(
+                        role="user",
+                        content=[self.parse_tool_call_result(msg.tool_result)],
+                    )
+                )
             elif msg.tool_call:
-                anthropic_messages.append(anthropic.types.MessageParam(
-                    role="assistant",
-                    content=[self.parse_tool_call(msg.tool_call)]
-                ))
+                anthropic_messages.append(
+                    anthropic.types.MessageParam(
+                        role="assistant", content=[self.parse_tool_call(msg.tool_call)]
+                    )
+                )
             else:
                 if msg.role == "user":
                     role = "user"
@@ -188,10 +220,9 @@ class AnthropicClient(BaseLLMClient):
                 if not msg.content:
                     raise ValueError("Message content is required")
 
-                anthropic_messages.append(anthropic.types.MessageParam(
-                    role=role,
-                    content=msg.content
-                ))
+                anthropic_messages.append(
+                    anthropic.types.MessageParam(role=role, content=msg.content)
+                )
         return anthropic_messages
 
     def parse_tool_call(self, tool_call: ToolCall) -> anthropic.types.ToolUseBlockParam:
@@ -200,10 +231,12 @@ class AnthropicClient(BaseLLMClient):
             type="tool_use",
             id=tool_call.call_id,
             name=tool_call.name,
-            input=json.dumps(tool_call.arguments)
+            input=json.dumps(tool_call.arguments),
         )
 
-    def parse_tool_call_result(self, tool_call_result: ToolResult) -> anthropic.types.ToolResultBlockParam:
+    def parse_tool_call_result(
+        self, tool_call_result: ToolResult
+    ) -> anthropic.types.ToolResultBlockParam:
         """Parse the tool call result from the LLM response."""
         result: str = ""
         if tool_call_result.result:
@@ -217,5 +250,5 @@ class AnthropicClient(BaseLLMClient):
             tool_use_id=tool_call_result.call_id,
             type="tool_result",
             content=result,
-            is_error=not tool_call_result.success
+            is_error=not tool_call_result.success,
         )
