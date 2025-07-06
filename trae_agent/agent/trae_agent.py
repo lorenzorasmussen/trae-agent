@@ -81,24 +81,20 @@ class TraeAgent(Agent):
         )
 
         user_message = ""
-        if extra_args:
-            if "project_path" in extra_args:
-                user_message += (
-                    f"[Project root path]:\n{extra_args['project_path']}\n\n"
-                )
-                self.project_path = extra_args["project_path"]
-            else:
-                raise AgentError("Project path is required")
-            if "issue" in extra_args:
-                user_message += f"[Problem statement]: We're currently solving the following issue within our repository. Here's the issue text:\n{extra_args['issue']}\n"
-            if "base_commit" in extra_args:
-                self.base_commit = extra_args["base_commit"]
-            if "must_patch" in extra_args:
-                self.must_patch = extra_args["must_patch"]
-            if "patch_path" in extra_args:
-                self.patch_path = extra_args["patch_path"]
-        else:
+        if not extra_args:
             raise AgentError("Project path and issue information are required.")
+        if "project_path" not in extra_args:
+            raise AgentError("Project path is required")
+
+        self.project_path = extra_args.get("project_path", "")
+        user_message += f"[Project root path]:\n{self.project_path}\n\n"
+
+        if "issue" in extra_args:
+            user_message += f"[Problem statement]: We're currently solving the following issue within our repository. Here's the issue text:\n{extra_args['issue']}\n"
+        optional_attrs_to_set = ["base_commit", "must_patch", "patch_path"]
+        for attr in optional_attrs_to_set:
+            if attr in extra_args:
+                setattr(self, attr, extra_args[attr])
 
         self.initial_messages.append(LLMMessage(role="user", content=user_message))
 
@@ -114,10 +110,9 @@ class TraeAgent(Agent):
     @override
     async def execute_task(self) -> AgentExecution:
         """Execute the task and finalize trajectory recording."""
-        if self.cli_console:
-            console_task = asyncio.create_task(self.cli_console.start())
-        else:
-            console_task = None
+        console_task = (
+            asyncio.create_task(self.cli_console.start()) if self.cli_console else None
+        )
         execution = await super().execute_task()
         if self.cli_console and console_task and not console_task.done():
             await console_task
@@ -210,22 +205,15 @@ If you are sure the issue has been solved, you should call the `task_done` to fi
         """
         lines = model_patch.splitlines(keepends=True)
         filtered_lines: list[str] = []
+        test_patterns = ["/test/", "/tests/", "/testing/", "test_", "tox.ini"]
         is_tests = False
 
         for line in lines:
             if line.startswith("diff --git a/"):
-                pieces = line.split()
-                to = pieces[-1]
-                if to.startswith("b/") and (
-                    "/test/" in to
-                    or "/tests/" in to
-                    or "/testing/" in to
-                    or "/test_" in to
-                    or "/tox.ini" in to
-                ):
-                    is_tests = True
-                else:
-                    is_tests = False
+                target_path = line.split()[-1]
+                is_tests = target_path.startswith("b/") and any(
+                    p in target_path for p in test_patterns
+                )
 
             if not is_tests:
                 filtered_lines.append(line)
@@ -237,10 +225,9 @@ If you are sure the issue has been solved, you should call the `task_done` to fi
         """Check if the LLM indicates that the task is completed."""
         if llm_response.tool_calls is None:
             return False
-        for tool_call in llm_response.tool_calls:
-            if tool_call.name == "task_done":
-                return True
-        return False
+        return any(
+            tool_call.name == "task_done" for tool_call in llm_response.tool_calls
+        )
 
     @override
     def is_task_completed(self, llm_response: LLMResponse) -> bool:
@@ -248,7 +235,7 @@ If you are sure the issue has been solved, you should call the `task_done` to fi
         if self.must_patch == "true":
             model_patch = self.get_git_diff()
             patch = self.remove_patches_to_tests(model_patch)
-            if patch.strip() == "":
+            if not patch.strip():
                 return False
 
         return True

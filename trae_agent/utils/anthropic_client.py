@@ -54,10 +54,11 @@ class AnthropicClient(BaseLLMClient):
             messages
         )
 
-        if reuse_history:
-            self.message_history = self.message_history + anthropic_messages
-        else:
-            self.message_history = anthropic_messages
+        self.message_history = (
+            self.message_history + anthropic_messages
+            if reuse_history
+            else anthropic_messages
+        )
 
         # Add tools if provided
         tool_schemas: list[anthropic.types.ToolUnionParam] | anthropic.NotGiven = (

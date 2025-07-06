@@ -245,10 +245,11 @@ class Agent(ABC):
         if len(tool_results) == 0:
             return None
 
-        reflection = ""
-        for tool_result in tool_results:
-            if not tool_result.success:
-                reflection += f"The tool execution failed with error: {tool_result.error}. Consider trying a different approach or fixing the parameters.\n"
+        reflection = "\n".join(
+            f"The tool execution failed with error: {tool_result.error}. Consider trying a different approach or fixing the parameters."
+            for tool_result in tool_results
+            if not tool_result.success
+        )
 
         return reflection
 

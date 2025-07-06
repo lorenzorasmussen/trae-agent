@@ -124,9 +124,11 @@ class OpenAIClient(BaseLLMClient):
                     tool_call_param["id"] = output_block.id
                 self.message_history.append(tool_call_param)
             elif output_block.type == "message":
-                for content_block in output_block.content:
-                    if content_block.type == "output_text":
-                        content += content_block.text
+                content = "".join(
+                    content_block.text
+                    for content_block in output_block.content
+                    if content_block.type == "output_text"
+                )
 
         if content != "":
             self.message_history.append(

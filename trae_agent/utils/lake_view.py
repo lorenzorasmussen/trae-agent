@@ -207,8 +207,10 @@ class LakeView:
 
         tool_calls_content = ""
         if agent_step.llm_response.tool_calls is not None:
-            for tool_call in agent_step.llm_response.tool_calls:
-                tool_calls_content += f"[`{tool_call.name}`] `{tool_call.arguments}`\n"
+            tool_calls_content = "\n".join(
+                f"[`{tool_call.name}`] `{tool_call.arguments}`"
+                for tool_call in agent_step.llm_response.tool_calls
+            )
             tool_calls_content = tool_calls_content.strip()
             content = f"{content}\n\nTool calls:\n{tool_calls_content}"
 
