@@ -35,7 +35,7 @@ uv sync
 
 ### Setup API Keys
 
-We recommand to configure Trae Agent using the config file.
+We recommend to configure Trae Agent using the config file.
 
 You can also set your API keys as environment variables:
 
@@ -56,7 +56,7 @@ trae-cli run "Create a hello world Python script"
 
 ## 📖 Usage
 
-### Commend Line Interface
+### Command Line Interface
 
 The main entry point is the `trae` command with several subcommands:
 
