@@ -115,7 +115,7 @@ Notes for using the `str_replace` command:
                 file_text = arguments.get("file_text") if "file_text" in arguments else None
                 if file_text is None:
                     return ToolExecResult(
-                        error=f"Parameter `file_text` is required for command: create",
+                        error="Parameter `file_text` is required for command: create",
                         error_code=-1
                     )
                 self.write_file(_path, file_text) # pyright: ignore[reportArgumentType]
@@ -126,7 +126,7 @@ Notes for using the `str_replace` command:
                 old_str = arguments.get("old_str") if "old_str" in arguments else None
                 if old_str is None:
                     return ToolExecResult(
-                        error=f"Parameter `old_str` is required for command: str_replace",
+                        error="Parameter `old_str` is required for command: str_replace",
                         error_code=-1
                     )
                 new_str = arguments.get("new_str") if "new_str" in arguments else None
@@ -135,13 +135,13 @@ Notes for using the `str_replace` command:
                 insert_line = arguments.get("insert_line") if "insert_line" in arguments else None
                 if insert_line is None:
                     return ToolExecResult(
-                        error=f"Parameter `insert_line` is required for command: insert",
+                        error="Parameter `insert_line` is required for command: insert",
                         error_code=-1
                     )
                 new_str_to_insert = arguments.get("new_str") if "new_str" in arguments else None
                 if new_str_to_insert is None:
                     return ToolExecResult(
-                        error=f"Parameter `new_str` is required for command: insert",
+                        error="Parameter `new_str` is required for command: insert",
                         error_code=-1
                     )
                 return self.insert(_path, insert_line, new_str_to_insert) # pyright: ignore[reportArgumentType]

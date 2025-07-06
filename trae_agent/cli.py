@@ -9,7 +9,6 @@ from pathlib import Path
 import os
 import sys
 import traceback
-import time
 
 import click
 from rich.console import Console
