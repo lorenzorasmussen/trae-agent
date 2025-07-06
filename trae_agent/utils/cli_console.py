@@ -151,7 +151,7 @@ class CLIConsole:
 
         # Show tool calls
         if agent_step.tool_calls:
-            step_content.append(f"\n[bold]🔧 Tool Calls:[/bold]")
+            step_content.append("\n[bold]🔧 Tool Calls:[/bold]")
             for i, tool_call in enumerate(agent_step.tool_calls):
                 step_content.append(f"  {i+1}. [cyan]{tool_call.name}[/cyan]")
                 if tool_call.arguments:
@@ -159,7 +159,7 @@ class CLIConsole:
 
         # Show tool results
         if agent_step.tool_calls and agent_step.tool_results:
-            step_content.append(f"\n[bold]📋 Tool Results:[/bold]")
+            step_content.append("\n[bold]📋 Tool Results:[/bold]")
             for i, result in enumerate(agent_step.tool_results):
                 status = "[green]✅ Success[/green]" if result.success else "[red]❌ Failed[/red]"
                 step_content.append(f"  {i+1}. {status}")

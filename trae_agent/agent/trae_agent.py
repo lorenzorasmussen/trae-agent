@@ -189,7 +189,7 @@ If you are sure the issue has been solved, you should call the `task_done` to fi
                 stdout = subprocess.check_output(['git', '--no-pager', 'diff']).decode()
             else:
                 stdout = subprocess.check_output(['git', '--no-pager', 'diff', self.base_commit, 'HEAD']).decode()
-        except:
+        except Exception:
             stdout = ""
         finally:
             os.chdir(pwd)
