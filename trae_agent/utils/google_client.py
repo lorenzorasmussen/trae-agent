@@ -159,7 +159,7 @@ class GoogleClient(BaseLLMClient):
     def supports_tool_calling(self, model_parameters: ModelParameters) -> bool:
         """Check if the current model supports tool calling."""
         tool_capable_models = [
-            "gemini-2.5-pro", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.0-pro"
+            "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"
         ]
         return any(model_name in model_parameters.model for model_name in tool_capable_models)
 
