@@ -45,7 +45,8 @@ def load_config(provider: str | None = None, model: str | None = None, api_key: 
     resolved_api_key = resolve_config_value(
         api_key,
         config.model_providers[str(resolved_provider)].api_key,
-        "OPENAI_API_KEY" if resolved_provider == "openai" else "ANTHROPIC_API_KEY"
+        #TODO refactor would be necessary
+        "OPENAI_API_KEY" if resolved_provider == "openai" else "ANTHROPIC_API_KEY" 
     )
     if resolved_api_key is not None:
         model_parameters.api_key = str(resolved_api_key)

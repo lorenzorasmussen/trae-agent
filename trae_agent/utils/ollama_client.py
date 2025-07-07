@@ -29,7 +29,7 @@ class OllamaClient(BaseLLMClient):
         self.client: openai.OpenAI = openai.OpenAI(
             # by default ollama doesn't require any api key. It should set to be "ollama". 
             api_key=self.api_key,
-            base_url="http://localhost:11434"
+            base_url=model_parameters.base_url
         )
         
         self.message_history: ResponseInputParam = []
