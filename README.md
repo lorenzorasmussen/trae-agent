@@ -11,6 +11,8 @@
 - [ ] Richer CLI support
 - [ ] Migrate to Rust
 
+[![Star History Chart](https://api.star-history.com/svg?repos=bytedance/trae-agent&type=Date)](https://www.star-history.com/#bytedance/trae-agent&Date)
+
 ## ✨ Features
 
 - 🌊 **Lakeview**: Provides short and concise summarisation for agent steps
