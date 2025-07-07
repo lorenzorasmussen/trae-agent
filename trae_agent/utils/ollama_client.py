@@ -27,6 +27,7 @@ class OllamaClient(BaseLLMClient):
         self.api_key = "ollama" 
 
         self.client: openai.OpenAI = openai.OpenAI(
+            # by default ollama doesn't require any api key. It should set to be "ollama". 
             api_key=self.api_key,
             base_url="http://localhost:11434"
         )
