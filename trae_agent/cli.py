@@ -72,6 +72,7 @@ def load_config(
         "anthropic": "ANTHROPIC_API_KEY",
         "azure": "AZURE_API_KEY",
         "openrouter": "OPENROUTER_API_KEY",
+        "doubao": "DOUBAO_API_KEY",
     }
 
     resolved_api_key = resolve_config_value(
