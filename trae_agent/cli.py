@@ -34,6 +34,19 @@ def load_config(
     config_file: str = "trae_config.json",
     max_steps: int | None = 20,
 ) -> Config:
+    """
+    load_config loads provider , model , api key , config file and maximum steps. By default, the provider is set to be OpenAI. 
+    Args:
+        provider: default provider is openai, currently only support openai and claude 
+        model: the model that you want to use
+        api_key: your api key
+        config_file: the relative path of your config file, default setting would be trae_config.json 
+        maximum_step: maxium number of step of the agent. Default setting is 20
+
+    Return:
+        Config Object
+    """
+
     config: Config = Config(config_file)
     # Resolve model provider
     resolved_provider = (
@@ -51,12 +64,23 @@ def load_config(
     if resolved_model is not None:
         model_parameters.model = str(resolved_model)
 
+    # Map providers to their environment variable names
+    env_var_map = {
+        "openai": "OPENAI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "azure": "AZURE_API_KEY",
+        "openrouter": "OPENROUTER_API_KEY",
+    }
+
     resolved_api_key = resolve_config_value(
         api_key,
         config.model_providers[str(resolved_provider)].api_key,
-        "OPENAI_API_KEY" if resolved_provider == "openai" else "ANTHROPIC_API_KEY",
+
+        env_var_map.get(str(resolved_provider)),
     )
+    
     if resolved_api_key is not None:
+        # If None shall we stop the program ? 
         model_parameters.api_key = str(resolved_api_key)
 
     resolved_max_steps = resolve_config_value(max_steps, config.max_steps)
@@ -66,7 +90,13 @@ def load_config(
 
 
 def create_agent(config: Config) -> TraeAgent:
-    """Create a Trae Agent with the specified configuration."""
+    """
+        create_agent creates a Trae Agent with the specified configuration.
+        Args:
+            config: Agent configuration. It is expceted that the config comes from load_config.
+        Return:
+            TraeAgent object
+    """
     try:
         # Create agent
         agent = TraeAgent(config)
@@ -113,9 +143,15 @@ def run(
     trajectory_file: str | None = None,
     patch_path: str | None = None,
 ):
-    """Run a task using Trae Agent.
+    """
+    Run is the main function of tace. It runs a task using Trae Agent.
+    Args:
+        tasks: the task that you want your agent to solve. This is required to be in the input
+        model: the model expected to be use 
+        working_dir: the working directory of the agent. This should be set either in cli or inf the config file (trae_config.json)
 
-    TASK: Description of the task to execute
+    Return: 
+        None (it is expected to be ended after calling the run function)
     """
 
     # Change working directory if specified
@@ -204,7 +240,11 @@ def interactive(
     max_steps: int | None = None,
     trajectory_file: str | None = None,
 ):
-    """Start an interactive session with Trae Agent."""
+    """
+    This function starts an interactive session with Trae Agent.
+    Args:
+        tasks: the task that you want your agent to solve. This is required to be in the input
+    """
     config = load_config(
         provider, model, api_key, config_file=config_file, max_steps=max_steps
     )

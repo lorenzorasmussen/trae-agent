@@ -1,7 +1,7 @@
 # Copyright (c) 2025 ByteDance Ltd. and/or its affiliates
 # SPDX-License-Identifier: MIT
 
-"""LLM Client wrapper for OpenAI and Anthropic APIs."""
+"""LLM Client wrapper for OpenAI, Anthropic, Azure, and OpenRouter APIs."""
 
 from enum import Enum
 
@@ -18,6 +18,7 @@ class LLMProvider(Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     AZURE = "azure"
+    OPENROUTER = "openrouter"
 
 
 class LLMClient:
@@ -41,6 +42,10 @@ class LLMClient:
             from .azure_client import AzureClient
 
             self.client = AzureClient(model_parameters)
+        elif provider == LLMProvider.OPENROUTER:
+            from .openrouter_client import OpenRouterClient
+
+            self.client = OpenRouterClient(model_parameters)
 
     def set_trajectory_recorder(self, recorder: TrajectoryRecorder | None) -> None:
         """Set the trajectory recorder for the underlying client."""
