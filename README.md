@@ -11,10 +11,12 @@
 - [ ] Richer CLI support
 - [ ] Migrate to Rust
 
+[![Star History Chart](https://api.star-history.com/svg?repos=bytedance/trae-agent&type=Date)](https://www.star-history.com/#bytedance/trae-agent&Date)
+
 ## ✨ Features
 
 - 🌊 **Lakeview**: Provides short and concise summarisation for agent steps
-- 🤖 **Multi-LLM Support**: Works with OpenAI and Anthropic official APIs
+- 🤖 **Multi-LLM Support**: Works with OpenAI, Anthropic, and OpenRouter APIs
 - 🛠️ **Rich Tool Ecosystem**: File editing, bash execution, sequential thinking, and more
 - 🎯 **Interactive Mode**: Conversational interface for iterative development
 - 📊 **Trajectory Recording**: Detailed logging of all agent actions for debugging and analysis
@@ -35,7 +37,7 @@ uv sync
 
 ### Setup API Keys
 
-We recommand to configure Trae Agent using the config file.
+We recommend to configure Trae Agent using the config file.
 
 You can also set your API keys as environment variables:
 
@@ -45,6 +47,13 @@ export OPENAI_API_KEY="your-openai-api-key"
 
 # For Anthropic
 export ANTHROPIC_API_KEY="your-anthropic-api-key"
+
+# For OpenRouter
+export OPENROUTER_API_KEY="your-openrouter-api-key"
+
+# Optional: For OpenRouter rankings
+export OPENROUTER_SITE_URL="https://your-site.com"
+export OPENROUTER_SITE_NAME="Your App Name"
 ```
 
 ### Basic Usage
@@ -68,6 +77,10 @@ trae-cli run "Create a Python script that calculates fibonacci numbers"
 
 # With specific provider and model
 trae-cli run "Fix the bug in main.py" --provider anthropic --model claude-sonnet-4-20250514
+
+# Using OpenRouter with any supported model
+trae-cli run "Optimize this code" --provider openrouter --model "openai/gpt-4o"
+trae-cli run "Add documentation" --provider openrouter --model "anthropic/claude-3-5-sonnet"
 
 # With custom working directory
 trae-cli run "Add unit tests for the utils module" --working-dir /path/to/project
@@ -122,8 +135,16 @@ Trae Agent uses a JSON configuration file (`trae_config.json`) for settings:
       "top_p": 1
     },
     "anthropic": {
-      "api_key": "your_anthropic_api_key", 
+      "api_key": "your_anthropic_api_key",
       "model": "claude-sonnet-4-20250514",
+      "max_tokens": 4096,
+      "temperature": 0.5,
+      "top_p": 1,
+      "top_k": 0
+    },
+    "openrouter": {
+      "api_key": "your_openrouter_api_key",
+      "model": "openai/gpt-4o",
       "max_tokens": 4096,
       "temperature": 0.5,
       "top_p": 1,
@@ -139,10 +160,31 @@ Trae Agent uses a JSON configuration file (`trae_config.json`) for settings:
 3. Environment variables
 4. Default values (lowest)
 
+```bash
+# Use GPT-4 through OpenRouter
+trae-cli run "Write a Python script" --provider openrouter --model "openai/gpt-4o"
+
+# Use Claude through OpenRouter
+trae-cli run "Review this code" --provider openrouter --model "anthropic/claude-3-5-sonnet"
+
+# Use Gemini through OpenRouter
+trae-cli run "Generate docs" --provider openrouter --model "google/gemini-pro"
+```
+
+**Popular OpenRouter Models:**
+- `openai/gpt-4o` - Latest GPT-4 model
+- `anthropic/claude-3-5-sonnet` - Excellent for coding tasks
+- `google/gemini-pro` - Strong reasoning capabilities
+- `meta-llama/llama-3.1-405b` - Open source alternative
+- `openai/gpt-4o-mini` - Fast and cost-effective
+
 ### Environment Variables
 
 - `OPENAI_API_KEY` - OpenAI API key
 - `ANTHROPIC_API_KEY` - Anthropic API key
+- `OPENROUTER_API_KEY` - OpenRouter API key
+- `OPENROUTER_SITE_URL` - (Optional) Your site URL for OpenRouter rankings
+- `OPENROUTER_SITE_NAME` - (Optional) Your site name for OpenRouter rankings
 
 ## 🛠️ Available Tools
 
@@ -178,7 +220,7 @@ trae-cli run "Debug the authentication module"
 # Saves to: trajectory_20250612_220546.json
 
 # Custom trajectory file
-trae-cli-cliae run "Optimize the database queries" --trajectory-file optimization_debug.json
+trae-cli run "Optimize the database queries" --trajectory-file optimization_debug.json
 ```
 
 Trajectory files contain:
@@ -210,8 +252,10 @@ For more details, see [TRAJECTORY_RECORDING.md](TRAJECTORY_RECORDING.md).
 ## 📋 Requirements
 
 - Python 3.12+
-- OpenAI API key (for OpenAI models)
-- Anthropic API key (for Anthropic models)
+- API key for your chosen provider:
+  - OpenAI API key (for OpenAI models)
+  - Anthropic API key (for Anthropic models)
+  - OpenRouter API key (for OpenRouter models)
 
 ## 🔧 Troubleshooting
 
@@ -228,9 +272,10 @@ PYTHONPATH=. trae-cli run "your task"
 # Verify your API keys are set
 echo $OPENAI_API_KEY
 echo $ANTHROPIC_API_KEY
+echo $OPENROUTER_API_KEY
 
 # Check configuration
-trae show-config
+trae-cli show-config
 ```
 
 **Permission Errors:**
