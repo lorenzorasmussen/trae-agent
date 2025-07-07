@@ -35,7 +35,9 @@ class OllamaClient(BaseLLMClient):
         self.client: openai.OpenAI = openai.OpenAI(
             # by default ollama doesn't require any api key. It should set to be "ollama".
             api_key=self.api_key,
-            base_url=model_parameters.base_url if model_parameters.base_url else "http://localhost:11434"
+            base_url=model_parameters.base_url
+            if model_parameters.base_url
+            else "http://localhost:11434",
         )
 
         self.message_history: ResponseInputParam = []
@@ -164,8 +166,8 @@ class OllamaClient(BaseLLMClient):
     @override
     def supports_tool_calling(self, model_parameters: ModelParameters) -> bool:
         """
-            Check if the current model supports tool calling.
-            TODO: there should be a more robust way to handle tool_support check or we have to manually type every supported model which is not really that feasible. for example deepseek familay has deepseek:1.5b deepseek:7b ...
+        Check if the current model supports tool calling.
+        TODO: there should be a more robust way to handle tool_support check or we have to manually type every supported model which is not really that feasible. for example deepseek familay has deepseek:1.5b deepseek:7b ...
         """
         tool_support_model = [
             "deepseek-r1",
