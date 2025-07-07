@@ -131,8 +131,8 @@ class GoogleClient(BaseLLMClient):
         usage = None
         if response.usage_metadata:
             usage = LLMUsage(
-                input_tokens=response.usage_metadata.prompt_token_count,
-                output_tokens=response.usage_metadata.candidates_token_count,
+                input_tokens=response.usage_metadata.prompt_token_count or 0,
+                output_tokens=response.usage_metadata.candidates_token_count or 0,
                 cache_read_input_tokens=response.usage_metadata.cached_content_token_count or 0,
                 cache_creation_input_tokens=0
             )
