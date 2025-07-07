@@ -18,6 +18,7 @@ class LLMProvider(Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     AZURE = "azure"
+    OLLAMA = "ollama"
     OPENROUTER = "openrouter"
     DOUBAO = "doubao"
 
@@ -46,6 +47,10 @@ class LLMClient:
             case LLMProvider.DOUBAO:
                 from .doubao_client import DoubaoClient
                 self.client = DoubaoClient(model_parameters)
+            case LLMProvider.OLLAMA:
+                from .ollama_client import OllamaClient
+                self.client = OllamaClient(model_parameters)
+
 
     def set_trajectory_recorder(self, recorder: TrajectoryRecorder | None) -> None:
         """Set the trajectory recorder for the underlying client."""
