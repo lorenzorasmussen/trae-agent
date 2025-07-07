@@ -179,7 +179,8 @@ class OpenAIClient(BaseLLMClient):
             "gpt-4.5",
             "o1",
             "o3",
-            "o4",
+            "o3-mini",
+            "o4-mini",
         ]
         return any(model in model_parameters.model for model in tool_capable_models)
 

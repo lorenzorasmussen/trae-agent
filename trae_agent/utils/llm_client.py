@@ -1,7 +1,7 @@
 # Copyright (c) 2025 ByteDance Ltd. and/or its affiliates
 # SPDX-License-Identifier: MIT
 
-"""LLM Client wrapper for OpenAI and Anthropic APIs."""
+"""LLM Client wrapper for OpenAI, Anthropic, Azure, and OpenRouter APIs."""
 
 from enum import Enum
 
@@ -18,7 +18,8 @@ class LLMProvider(Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     AZURE = "azure"
-
+    OPENROUTER = "openrouter"
+    DOUBAO = "doubao"
 
 class LLMClient:
     """Main LLM client that supports multiple providers."""
@@ -29,18 +30,22 @@ class LLMClient:
 
         self.provider: LLMProvider = provider
 
-        if provider == LLMProvider.OPENAI:
-            from .openai_client import OpenAIClient
-
-            self.client: BaseLLMClient = OpenAIClient(model_parameters)
-        elif provider == LLMProvider.ANTHROPIC:
-            from .anthropic_client import AnthropicClient
-
-            self.client = AnthropicClient(model_parameters)
-        elif provider == LLMProvider.AZURE:
-            from .azure_client import AzureClient
-
-            self.client = AzureClient(model_parameters)
+        match provider:
+            case LLMProvider.OPENAI:
+                from .openai_client import OpenAIClient
+                self.client: BaseLLMClient = OpenAIClient(model_parameters)
+            case LLMProvider.ANTHROPIC:
+                from .anthropic_client import AnthropicClient
+                self.client = AnthropicClient(model_parameters)
+            case LLMProvider.AZURE:
+                from .azure_client import AzureClient
+                self.client = AzureClient(model_parameters)
+            case LLMProvider.OPENROUTER:
+                from .openrouter_client import OpenRouterClient
+                self.client = OpenRouterClient(model_parameters)
+            case LLMProvider.DOUBAO:
+                from .doubao_client import DoubaoClient
+                self.client = DoubaoClient(model_parameters)
 
     def set_trajectory_recorder(self, recorder: TrajectoryRecorder | None) -> None:
         """Set the trajectory recorder for the underlying client."""

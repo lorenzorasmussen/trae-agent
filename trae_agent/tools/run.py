@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Anthroic
+# Copyright (c) 2023 Anthropic
 # Copyright (c) 2025 ByteDance Ltd. and/or its affiliates.
 # SPDX-License-Identifier: MIT
 #
