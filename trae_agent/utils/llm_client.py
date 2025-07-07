@@ -6,10 +6,10 @@
 from enum import Enum
 
 from ..tools.base import Tool
-from .config import ModelParameters
-from .trajectory_recorder import TrajectoryRecorder
 from .base_client import BaseLLMClient
+from .config import ModelParameters
 from .llm_basics import LLMMessage, LLMResponse
+from .trajectory_recorder import TrajectoryRecorder
 
 
 class LLMProvider(Enum):
@@ -20,6 +20,7 @@ class LLMProvider(Enum):
     AZURE = "azure"
     OPENROUTER = "openrouter"
     DOUBAO = "doubao"
+
 
 class LLMClient:
     """Main LLM client that supports multiple providers."""
@@ -33,18 +34,23 @@ class LLMClient:
         match provider:
             case LLMProvider.OPENAI:
                 from .openai_client import OpenAIClient
+
                 self.client: BaseLLMClient = OpenAIClient(model_parameters)
             case LLMProvider.ANTHROPIC:
                 from .anthropic_client import AnthropicClient
+
                 self.client = AnthropicClient(model_parameters)
             case LLMProvider.AZURE:
                 from .azure_client import AzureClient
+
                 self.client = AzureClient(model_parameters)
             case LLMProvider.OPENROUTER:
                 from .openrouter_client import OpenRouterClient
+
                 self.client = OpenRouterClient(model_parameters)
             case LLMProvider.DOUBAO:
                 from .doubao_client import DoubaoClient
+
                 self.client = DoubaoClient(model_parameters)
 
     def set_trajectory_recorder(self, recorder: TrajectoryRecorder | None) -> None:

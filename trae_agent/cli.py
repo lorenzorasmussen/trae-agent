@@ -4,24 +4,21 @@
 """Command Line Interface for Trae Agent."""
 
 import asyncio
-from pathlib import Path
-
 import os
 import sys
 import traceback
+from pathlib import Path
 
 import click
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from dotenv import load_dotenv
 
 from trae_agent.utils.cli_console import CLIConsole
 
 from .agent import TraeAgent
-from .utils.config import (
-    Config, resolve_config_value
-)
+from .utils.config import Config, resolve_config_value
 
 # Load environment variables
 _ = load_dotenv()

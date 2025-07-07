@@ -4,7 +4,8 @@
 """Tools module for Trae Agent."""
 
 from typing import Type
-from .base import Tool, ToolResult, ToolCall, ToolExecutor
+
+from .base import Tool, ToolCall, ToolExecutor, ToolResult
 from .bash_tool import BashTool
 from .edit_tool import TextEditorTool
 from .sequential_thinking_tool import SequentialThinkingTool

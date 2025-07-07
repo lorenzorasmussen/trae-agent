@@ -1,17 +1,17 @@
 # Copyright (c) 2025 ByteDance Ltd. and/or its affiliates
 # SPDX-License-Identifier: MIT
 
-from dataclasses import dataclass
 import asyncio
-from rich.panel import Panel
+from dataclasses import dataclass
+
 from rich.console import Console, Group
 from rich.live import Live
+from rich.panel import Panel
 from rich.table import Table
 
-from .lake_view import LakeView
 from ..agent.agent_basics import AgentExecution, AgentState, AgentStep
 from .config import Config, LakeviewConfig
-
+from .lake_view import LakeView
 
 AGENT_STATE_INFO = {
     AgentState.THINKING: ("blue", "🤔"),

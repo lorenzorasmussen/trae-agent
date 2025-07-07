@@ -10,9 +10,9 @@
 # This modified file is released under the same license.
 
 import json
-
 from dataclasses import dataclass
 from typing import override
+
 from .base import Tool, ToolCallArguments, ToolExecResult, ToolParameter
 
 
