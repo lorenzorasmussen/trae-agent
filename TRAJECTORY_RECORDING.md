@@ -135,7 +135,7 @@ The trajectory file is a JSON document with the following structure:
           "content": "You are a software engineering assistant..."
         },
         {
-          "role": "user", 
+          "role": "user",
           "content": "Create a hello world Python script"
         }
       ],
@@ -253,4 +253,4 @@ The trajectory file is a JSON document with the following structure:
 2. **Performance Analysis**: Analyze token usage and execution patterns
 3. **Compliance Auditing**: Track all changes made by the agent
 4. **Model Comparison**: Compare behavior across different LLM providers/models
-5. **Tool Usage Analysis**: Understand which tools are used and how often 
+5. **Tool Usage Analysis**: Understand which tools are used and how often

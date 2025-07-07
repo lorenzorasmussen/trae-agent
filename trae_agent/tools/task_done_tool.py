@@ -14,7 +14,7 @@ class TaskDoneTool(Tool):
 
     @override
     def get_description(self) -> str:
-        return "Report the completion of the task. Note that you cannot call this tool before any verfication is done. You can write reproduce / test script to verify your solution."
+        return "Report the completion of the task. Note that you cannot call this tool before any verification is done. You can write reproduce / test script to verify your solution."
 
     @override
     def get_parameters(self) -> list[ToolParameter]:

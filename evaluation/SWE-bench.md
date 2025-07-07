@@ -23,9 +23,10 @@ Before running the evaluation, ensure you have:
 
 ## Setup Instructions
 
-Make sure running scripts in the `evaluation` directory.
+Make sure installing extra dependencies for evaluation and running scripts in the `evaluation` directory.
 
 ```bash
+uv sync --extra evaluation
 cd evaluation
 ```
 
