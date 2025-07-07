@@ -50,17 +50,21 @@ class Config:
     lakeview_config: LakeviewConfig | None = None
     enable_lakeview: bool = True
 
-    def __init__(self, config_file: str = "trae_config.json"):
-        config_path = Path(config_file)
-        if config_path.exists():
-            try:
-                with open(config_path, "r") as f:
-                    self._config = json.load(f)
-            except Exception as e:
-                print(f"Warning: Could not load config file {config_file}: {e}")
-                self._config = {}
+    def __init__(self, config_or_config_file: str | dict = "trae_config.json"):
+        # Accept either file path or direct config dict
+        if isinstance(config_or_config_file, dict):
+            self._config = config_or_config_file
         else:
-            self._config = {}
+            config_path = Path(config_or_config_file)
+            if config_path.exists():
+                try:
+                    with open(config_path, 'r') as f:
+                        self._config = json.load(f)
+                except Exception as e:
+                    print(f"Warning: Could not load config file {config_or_config_file}: {e}")
+                    self._config = {}
+            else:
+                self._config = {}
 
         self.default_provider = self._config.get("default_provider", "anthropic")
         self.max_steps = self._config.get("max_steps", 20)
