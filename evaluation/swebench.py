@@ -6,12 +6,12 @@ import subprocess
 from datasets import load_dataset
 from docker import from_env
 from docker.errors import ImageNotFound
-from pyarrow import dataset
 from tqdm import tqdm
 import argparse
 import shutil
 import traceback
 import json
+
 
 def docker_exec(container, command: str):
     """
@@ -26,11 +26,20 @@ def docker_exec(container, command: str):
     """
     exec_result = container.exec_run(cmd=command)
     return_code = exec_result[0]
-    output = exec_result[1].decode('utf-8')
+    output = exec_result[1].decode("utf-8")
     return return_code, output
 
+
 class SWEBenchEvaluation:
-    def __init__(self, working_dir: str, trae_config_file_name: str, dataset: str="SWE-bench_Verified", docker_env_config: str="", swebench_harness_path: str="", run_id = "trae-agent"):
+    def __init__(
+        self,
+        working_dir: str,
+        trae_config_file_name: str,
+        dataset: str = "SWE-bench_Verified",
+        docker_env_config: str = "",
+        swebench_harness_path: str = "",
+        run_id="trae-agent",
+    ):
         """
         Initialize the SWEBenchEvaluation class. The initialisation includes checking the existence of required Docker images and downloading missing images.
 
@@ -42,7 +51,9 @@ class SWEBenchEvaluation:
             swebench_harness_path: The path to the SWEBench harness.
             run_id: The run id.
         """
-        assert dataset in ["SWE-bench", "SWE-bench_Lite", "SWE-bench_Verified"], f"Invalid dataset name: {dataset}"
+        assert dataset in ["SWE-bench", "SWE-bench_Lite", "SWE-bench_Verified"], (
+            f"Invalid dataset name: {dataset}"
+        )
         self.dataset = load_dataset(f"princeton-nlp/{dataset}", split="test")
         self.dataset_name = dataset
 
@@ -51,9 +62,9 @@ class SWEBenchEvaluation:
         self.working_dir = Path(working_dir)
         self.swebench_harness_path = swebench_harness_path
         self.run_id = run_id
-        
+
         if docker_env_config != "":
-            with open(docker_env_config, 'r') as f:
+            with open(docker_env_config, "r") as f:
                 self.docker_env_config = json.load(f)
         else:
             self.docker_env_config = {}
@@ -63,7 +74,9 @@ class SWEBenchEvaluation:
 
         self.trae_config_file_name = trae_config_file_name
 
-        shutil.copyfile(self.trae_config_file_name, self.working_dir / "trae_config_local.json")
+        shutil.copyfile(
+            self.trae_config_file_name, self.working_dir / "trae_config_local.json"
+        )
 
         self.pull_images()
 
@@ -94,9 +107,9 @@ class SWEBenchEvaluation:
             except ImageNotFound:
                 self.image_status[instance_id] = False
         try:
-            _ = self.docker_client.images.get('ubuntu:22.04')
-        except:
-            self.docker_client.images.pull('ubuntu:22.04')
+            _ = self.docker_client.images.get("ubuntu:22.04")
+        except Exception:
+            self.docker_client.images.pull("ubuntu:22.04")
 
     def pull_images(self):
         """
@@ -104,7 +117,11 @@ class SWEBenchEvaluation:
         """
         self._check_images()
         print(f"Total number of images: {len(self.image_status)}")
-        instance_ids = [instance_id for instance_id in self.image_status if not self.image_status[instance_id]]
+        instance_ids = [
+            instance_id
+            for instance_id in self.image_status
+            if not self.image_status[instance_id]
+        ]
         print(f"Number of images to download: {len(instance_ids)}")
         if len(instance_ids) == 0:
             return
@@ -116,70 +133,69 @@ class SWEBenchEvaluation:
         """
         Prepare the Trae agent by building Trae Agent and UV inside a general Ubuntu image, save the artifacts in the workspace, which are then used in experiment Docker containers.
         """
-        tars = ['trae-agent.tar', 'uv.tar', 'uv_shared.tar']
+        tars = ["trae-agent.tar", "uv.tar", "uv_shared.tar"]
         all_exist = True
         for tar in tars:
             tar_path = self.working_dir / tar
             if not tar_path.exists():
                 all_exist = False
                 break
-        
+
         if all_exist:
             print("Found built trae-agent and uv artifacts. Skipping building.")
             return
 
         try:
-            image = self.docker_client.images.get('ubuntu:22.04')
-        except:
-            image = self.docker_client.images.pull('ubuntu:22.04')
+            image = self.docker_client.images.get("ubuntu:22.04")
+        except Exception:
+            image = self.docker_client.images.pull("ubuntu:22.04")
 
         container = self.docker_client.containers.run(
             image,
-            command='bash',
+            command="bash",
             detach=True,
             tty=True,
             stdin_open=True,
             volumes={
-                self.working_dir.absolute(): {
-                    'bind': '/trae-workspace',
-                    'mode': 'rw'
-                }
+                self.working_dir.absolute(): {"bind": "/trae-workspace", "mode": "rw"}
             },
-            environment=self.docker_env_config['preparation_env'] if 'preparation_env' in self.docker_env_config else None
+            environment=self.docker_env_config.get("preparation_env", None),
         )
 
         commands = [
-            'apt-get update',
-            'apt-get install -y curl git',
-            'curl -LsSf https://astral.sh/uv/install.sh | sh',
-            'git clone https://github.com/bytedance/trae-agent.git /trae-workspace/trae-agent',
-            'cd /trae-workspace/trae-agent && source $HOME/.local/bin/env && uv sync',
+            "apt-get update",
+            "apt-get install -y curl git",
+            "curl -LsSf https://astral.sh/uv/install.sh | sh",
+            "git clone https://github.com/bytedance/trae-agent.git /trae-workspace/trae-agent",
+            "cd /trae-workspace/trae-agent && source $HOME/.local/bin/env && uv sync",
         ]
 
-        for command in tqdm(commands, desc="Building trae-agent inside base Docker container"):
+        for command in tqdm(
+            commands, desc="Building trae-agent inside base Docker container"
+        ):
             try:
                 new_command = f'/bin/bash -c "{command}"'
                 return_code, output = docker_exec(container, new_command)
-            except:
+            except Exception:
                 print(f"{command} failed.")
                 print(traceback.format_exc())
                 break
             if return_code is not None and return_code != 0:
                 print("Docker exec error. Error message: {}".format(output))
                 exit(-1)
-    
+
         with open(self.working_dir / "trae-agent.tar", "wb") as f:
-            bits, _ = container.get_archive('/trae-workspace/trae-agent')
+            bits, _ = container.get_archive("/trae-workspace/trae-agent")
             for chunk in bits:
                 f.write(chunk)
 
         with open(self.working_dir / "uv.tar", "wb") as f:
-            bits, _ = container.get_archive('/root/.local/bin/uv')
+            bits, _ = container.get_archive("/root/.local/bin/uv")
             for chunk in bits:
                 f.write(chunk)
-        
+
         with open(self.working_dir / "uv_shared.tar", "wb") as f:
-            bits, _ = container.get_archive('/root/.local/share/uv')
+            bits, _ = container.get_archive("/root/.local/share/uv")
             for chunk in bits:
                 f.write(chunk)
 
@@ -201,34 +217,31 @@ class SWEBenchEvaluation:
         instance_dir = self.working_dir / instance["instance_id"]
         instance_dir.mkdir(parents=True, exist_ok=True)
 
-        with open(instance_dir / "problem_statement.txt", 'w') as f:
+        with open(instance_dir / "problem_statement.txt", "w") as f:
             f.write(instance["problem_statement"])
 
         container = self.docker_client.containers.run(
             image_name,
-            command='/bin/bash',
+            command="/bin/bash",
             detach=True,
             tty=True,
             stdin_open=True,
             volumes={
-                self.working_dir.absolute(): {
-                    'bind': '/trae-workspace',
-                    'mode': 'rw'
-                }
+                self.working_dir.absolute(): {"bind": "/trae-workspace", "mode": "rw"}
             },
-            working_dir='/trae-workspace',
-            environment=self.docker_env_config['experiment_env'] if 'experiment_env' in self.docker_env_config else None,
-            stream=True
+            working_dir="/trae-workspace",
+            environment=self.docker_env_config.get("experiment_env", None),
+            stream=True,
         )
 
         commands = [
-            'tar xf trae-agent.tar',
-            'tar xf uv.tar',
-            'mkdir -p /root/.local/bin',
-            'mv uv /root/.local/bin/',
-            'tar xf uv_shared.tar',
-            'mkdir -p /root/.local/share',
-            'mv uv /root/.local/share/'
+            "tar xf trae-agent.tar",
+            "tar xf uv.tar",
+            "mkdir -p /root/.local/bin",
+            "mv uv /root/.local/bin/",
+            "tar xf uv_shared.tar",
+            "mkdir -p /root/.local/share",
+            "mv uv /root/.local/share/",
         ]
 
         for command in commands:
@@ -237,7 +250,7 @@ class SWEBenchEvaluation:
                 return_code, output = docker_exec(container, new_command)
                 if return_code is not None and return_code != 0:
                     print("Docker exec error. Error message: {}".format(output))
-            except:
+            except Exception:
                 print(f"{command} failed.")
                 print(traceback.format_exc())
                 break
@@ -252,25 +265,25 @@ class SWEBenchEvaluation:
         """
         instance = None
         for inst in self.dataset:
-            if inst['instance_id'] == instance_id:
+            if inst["instance_id"] == instance_id:
                 instance = inst
         if instance is None:
             print(f"Instance {instance_id} not found.")
             return
-        
+
         container = self.prepare_experiment_container(instance)
         instance_dir = instance["instance_id"]
         problem_statement_path = instance_dir + "/problem_statement.txt"
         patch_file_path = instance_dir + f"/{instance['instance_id']}.patch"
         traj_path = instance_dir + f"/{instance['instance_id']}.json"
         command = f'source trae-agent/.venv/bin/activate && trae-cli run {problem_statement_path} --working-dir="/testbed/" --config-file trae_config_local.json --max-steps 200 --must-patch --patch-path {patch_file_path} --trajectory-file {traj_path}'
-        new_command = f'/bin/bash -c \'{command}\''
+        new_command = f"/bin/bash -c '{command}'"
 
         try:
             return_code, output = docker_exec(container, new_command)
             if return_code is not None and return_code != 0:
                 print("Docker exec error. Error message: {}".format(output))
-        except:
+        except Exception:
             print(f"{command} failed.")
             print(traceback.format_exc())
 
@@ -288,8 +301,8 @@ class SWEBenchEvaluation:
         Run evaluation using the SWE-bench harness.
         """
         swebench_harness_path = Path(self.swebench_harness_path)
-        swebench_python_path = 'swebench_venv/bin/python'
-        
+        swebench_python_path = "swebench_venv/bin/python"
+
         cmd = [
             swebench_python_path,
             "-m",
@@ -297,21 +310,23 @@ class SWEBenchEvaluation:
             "--dataset_name",
             f"princeton-nlp/{self.dataset_name}",
             "--predictions_path",
-            (self.working_dir / 'predictions.json').absolute().as_posix(),
+            (self.working_dir / "predictions.json").absolute().as_posix(),
             "--run_id",
             self.run_id,
             "--cache_level",
             "instance",
             "--instance_image_tag",
-           "latest",
+            "latest",
         ]
 
-        process = subprocess.run(cmd, capture_output=True, cwd=swebench_harness_path.as_posix())
+        process = subprocess.run(
+            cmd, capture_output=True, cwd=swebench_harness_path.as_posix()
+        )
         print(process.stdout.decode())
         print(process.stderr.decode())
 
-        result_filename = f'trae-agent.{self.run_id}.json'
-        print(f'Evaluation completed and file saved to {result_filename}')
+        result_filename = f"trae-agent.{self.run_id}.json"
+        print(f"Evaluation completed and file saved to {result_filename}")
 
     def get_all_preds(self, instance_ids: list[str] | None = None):
         """
@@ -322,39 +337,76 @@ class SWEBenchEvaluation:
         """
         preds = []
         if not instance_ids:
-            instance_ids = [instance['instance_id'] for instance in self.dataset]
+            instance_ids = [instance["instance_id"] for instance in self.dataset]
         for instance_id in instance_ids:
             patch_path = self.working_dir / instance_id / f"{instance_id}.patch"
             if not patch_path.exists():
                 continue
-            with open(patch_path, 'r') as f:
+            with open(patch_path, "r") as f:
                 patch = f.read()
-            preds.append({
-                "instance_id": instance_id,
-                "model_name_or_path": "trae-agent",
-                "model_patch": patch,
-            })
-        with open(self.working_dir / 'predictions.json', 'w') as f:
+            preds.append(
+                {
+                    "instance_id": instance_id,
+                    "model_name_or_path": "trae-agent",
+                    "model_patch": patch,
+                }
+            )
+        with open(self.working_dir / "predictions.json", "w") as f:
             json.dump(preds, f)
+
 
 def main():
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--dataset", type=str, default="SWE-bench_Verified")
     argument_parser.add_argument("--working-dir", type=str, default="./trae-workspace")
-    argument_parser.add_argument("--config-file", type=str, default="trae_config_local.json")
-    argument_parser.add_argument("--instance_ids", nargs="+", type=str, help="Instance IDs to run (space separated)",)
-    argument_parser.add_argument("--swebench-harness-path", type=str, default="", required=False, help="Only used for evaluation.")
-    argument_parser.add_argument("--docker-env-config", type=str, default="", required=False)
-    argument_parser.add_argument("--run-id", type=str, required=False, default="trae-agent", help="Run ID for SWE-bench evaluation.")
+    argument_parser.add_argument(
+        "--config-file", type=str, default="trae_config_local.json"
+    )
+    argument_parser.add_argument(
+        "--instance_ids",
+        nargs="+",
+        type=str,
+        help="Instance IDs to run (space separated)",
+    )
+    argument_parser.add_argument(
+        "--swebench-harness-path",
+        type=str,
+        default="",
+        required=False,
+        help="Only used for evaluation.",
+    )
+    argument_parser.add_argument(
+        "--docker-env-config", type=str, default="", required=False
+    )
+    argument_parser.add_argument(
+        "--run-id",
+        type=str,
+        required=False,
+        default="trae-agent",
+        help="Run ID for SWE-bench evaluation.",
+    )
     # expr: only generate patches
     # eval: only evaluation patches
     # e2e: both expr and eval
-    argument_parser.add_argument("--mode", type=str, choices=['e2e', 'expr', 'eval'], default='e2e', help='e2e: both expr and eval, expr: only generate patches, eval: only evaluation patches')
-    
-    args = argument_parser.parse_args()
-    evaluation = SWEBenchEvaluation(args.working_dir, args.config_file, args.dataset, args.docker_env_config, args.swebench_harness_path, args.run_id)
+    argument_parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["e2e", "expr", "eval"],
+        default="e2e",
+        help="e2e: both expr and eval, expr: only generate patches, eval: only evaluation patches",
+    )
 
-    if args.mode == 'e2e' or args.mode == 'expr':
+    args = argument_parser.parse_args()
+    evaluation = SWEBenchEvaluation(
+        args.working_dir,
+        args.config_file,
+        args.dataset,
+        args.docker_env_config,
+        args.swebench_harness_path,
+        args.run_id,
+    )
+
+    if args.mode == "e2e" or args.mode == "expr":
         evaluation.prepare_trae_agent()
 
         if args.instance_ids:
@@ -365,7 +417,7 @@ def main():
             print("Running all instances")
             evaluation.run_all()
 
-    if args.mode == 'e2e' or args.mode == 'eval':
+    if args.mode == "e2e" or args.mode == "eval":
         evaluation.get_all_preds(args.instance_ids)
         evaluation.run_eval()
 

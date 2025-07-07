@@ -35,13 +35,13 @@ def load_config(
     max_steps: int | None = 20,
 ) -> Config:
     """
-    load_config loads provider , model , api key , config file and maximum steps. By default, the provider is set to be OpenAI. 
+    load_config loads provider , model , api key , config file and maximum steps. By default, the provider is set to be OpenAI.
     Args:
-        provider: default provider is openai, currently only support openai and claude 
+        provider: default provider is openai, currently only support openai and claude
         model: the model that you want to use
         api_key: your api key
-        config_file: the relative path of your config file, default setting would be trae_config.json 
-        maximum_step: maxium number of step of the agent. Default setting is 20
+        config_file: the relative path of your config file, default setting would be trae_config.json
+        maximum_step: maximum number of step of the agent. Default setting is 20
 
     Return:
         Config Object
@@ -75,12 +75,11 @@ def load_config(
     resolved_api_key = resolve_config_value(
         api_key,
         config.model_providers[str(resolved_provider)].api_key,
-
         env_var_map.get(str(resolved_provider)),
     )
-    
+
     if resolved_api_key is not None:
-        # If None shall we stop the program ? 
+        # If None shall we stop the program ?
         model_parameters.api_key = str(resolved_api_key)
 
     resolved_max_steps = resolve_config_value(max_steps, config.max_steps)
@@ -91,11 +90,11 @@ def load_config(
 
 def create_agent(config: Config) -> TraeAgent:
     """
-        create_agent creates a Trae Agent with the specified configuration.
-        Args:
-            config: Agent configuration. It is expceted that the config comes from load_config.
-        Return:
-            TraeAgent object
+    create_agent creates a Trae Agent with the specified configuration.
+    Args:
+        config: Agent configuration. It is expected that the config comes from load_config.
+    Return:
+        TraeAgent object
     """
     try:
         # Create agent
@@ -147,10 +146,10 @@ def run(
     Run is the main function of tace. It runs a task using Trae Agent.
     Args:
         tasks: the task that you want your agent to solve. This is required to be in the input
-        model: the model expected to be use 
+        model: the model expected to be use
         working_dir: the working directory of the agent. This should be set either in cli or inf the config file (trae_config.json)
 
-    Return: 
+    Return:
         None (it is expected to be ended after calling the run function)
     """
 
