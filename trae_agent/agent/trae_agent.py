@@ -183,13 +183,15 @@ If you are sure the issue has been solved, you should call the `task_done` to fi
     def get_git_diff(self) -> str:
         """Get the git diff of the project."""
         pwd = os.getcwd()
+        if not os.path.isdir(self.project_path):
+            return ""
         os.chdir(self.project_path)
         try:
             if not self.base_commit:
                 stdout = subprocess.check_output(['git', '--no-pager', 'diff']).decode()
             else:
                 stdout = subprocess.check_output(['git', '--no-pager', 'diff', self.base_commit, 'HEAD']).decode()
-        except:
+        except (subprocess.CalledProcessError, FileNotFoundError):
             stdout = ""
         finally:
             os.chdir(pwd)
