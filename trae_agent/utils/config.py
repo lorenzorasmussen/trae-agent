@@ -19,6 +19,7 @@ from typing import override
 @dataclass
 class ModelParameters:
     """Model parameters for a model provider."""
+
     model: str
     api_key: str
     max_tokens: int
@@ -34,6 +35,7 @@ class ModelParameters:
 @dataclass
 class LakeviewConfig:
     """Configuration for Lakeview."""
+
     model_provider: str
     model_name: str
 
@@ -41,24 +43,25 @@ class LakeviewConfig:
 @dataclass
 class Config:
     """Configuration manager for Trae Agent."""
+
     default_provider: str
     max_steps: int
     model_providers: dict[str, ModelParameters]
     lakeview_config: LakeviewConfig | None = None
     enable_lakeview: bool = True
 
-    def __init__(self, config_file: str | dict = "trae_config.json"):
+    def __init__(self, config_or_config_file: str | dict = "trae_config.json"):
         # Accept either file path or direct config dict
-        if isinstance(config_file, dict):
-            self._config = config_file
+        if isinstance(config_or_config_file, dict):
+            self._config = config_or_config_file
         else:
-            config_path = Path(config_file)
+            config_path = Path(config_or_config_file)
             if config_path.exists():
                 try:
                     with open(config_path, 'r') as f:
                         self._config = json.load(f)
                 except Exception as e:
-                    print(f"Warning: Could not load config file {config_file}: {e}")
+                    print(f"Warning: Could not load config file {config_or_config_file}: {e}")
                     self._config = {}
             else:
                 self._config = {}
@@ -82,8 +85,10 @@ class Config:
                 ),
             }
         else:
-            for provider in self._config.get("model_providers", {}).keys():
-                provider_config: dict[str, str | int | float | bool] = self._config.get("model_providers", {}).get(provider, {})
+            for provider in self._config.get("model_providers", {}):
+                provider_config: dict[str, str | int | float | bool] = self._config.get(
+                    "model_providers", {}
+                ).get(provider, {})
                 self.model_providers[provider] = ModelParameters(
                     model=str(provider_config.get("model", "")),
                     api_key=str(provider_config.get("api_key", "")),
@@ -92,15 +97,29 @@ class Config:
                     top_p=float(provider_config.get("top_p", 1)),
                     top_k=int(provider_config.get("top_k", 0)),
                     max_retries=int(provider_config.get("max_retries", 10)),
-                    parallel_tool_calls=bool(provider_config.get("parallel_tool_calls", False)),
-                    base_url=str(provider_config.get("base_url")) if "base_url" in provider_config else None,
-                    api_version=str(provider_config.get("api_version")) if "api_version" in provider_config else None,
+                    parallel_tool_calls=bool(
+                        provider_config.get("parallel_tool_calls", False)
+                    ),
+                    base_url=str(provider_config.get("base_url"))
+                    if "base_url" in provider_config
+                    else None,
+                    api_version=str(provider_config.get("api_version"))
+                    if "api_version" in provider_config
+                    else None,
                 )
 
         if "lakeview_config" in self._config:
             self.lakeview_config = LakeviewConfig(
-                model_provider=str(self._config.get("lakeview_config", {}).get("model_provider", "anthropic")),
-                model_name=str(self._config.get("lakeview_config", {}).get("model_name", "claude-sonnet-4-20250514")),
+                model_provider=str(
+                    self._config.get("lakeview_config", {}).get(
+                        "model_provider", "anthropic"
+                    )
+                ),
+                model_name=str(
+                    self._config.get("lakeview_config", {}).get(
+                        "model_name", "claude-sonnet-4-20250514"
+                    )
+                ),
             )
 
         return
@@ -115,7 +134,11 @@ def load_config(config_file: str = "trae_config.json") -> Config:
     return Config(config_file)
 
 
-def resolve_config_value(cli_value: int | str | float | None, config_value: int | str | float | None, env_var: str | None = None) -> int | str | float | None:
+def resolve_config_value(
+    cli_value: int | str | float | None,
+    config_value: int | str | float | None,
+    env_var: str | None = None,
+) -> int | str | float | None:
     """Resolve configuration value with priority: CLI > ENV > Config > Default."""
     if cli_value is not None:
         return cli_value

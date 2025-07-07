@@ -42,11 +42,13 @@ class TrajectoryRecorder:
             "agent_steps": [],
             "success": False,
             "final_result": None,
-            "execution_time": 0.0
+            "execution_time": 0.0,
         }
         self._start_time: datetime | None = None
 
-    def start_recording(self, task: str, provider: str, model: str, max_steps: int) -> None:
+    def start_recording(
+        self, task: str, provider: str, model: str, max_steps: int
+    ) -> None:
         """Start recording a new trajectory.
 
         Args:
@@ -56,23 +58,27 @@ class TrajectoryRecorder:
             max_steps: Maximum number of steps allowed
         """
         self._start_time = datetime.now()
-        self.trajectory_data.update({
-            "task": task,
-            "start_time": self._start_time.isoformat(),
-            "provider": provider,
-            "model": model,
-            "max_steps": max_steps,
-            "llm_interactions": [],
-            "agent_steps": []
-        })
+        self.trajectory_data.update(
+            {
+                "task": task,
+                "start_time": self._start_time.isoformat(),
+                "provider": provider,
+                "model": model,
+                "max_steps": max_steps,
+                "llm_interactions": [],
+                "agent_steps": [],
+            }
+        )
         self.save_trajectory()
 
-    def record_llm_interaction(self,
-                              messages: list[LLMMessage],
-                              response: LLMResponse,
-                              provider: str,
-                              model: str,
-                              tools: list[Any] | None = None) -> None:
+    def record_llm_interaction(
+        self,
+        messages: list[LLMMessage],
+        response: LLMResponse,
+        provider: str,
+        model: str,
+        tools: list[Any] | None = None,
+    ) -> None:
         """Record an LLM interaction.
 
         Args:
@@ -92,29 +98,51 @@ class TrajectoryRecorder:
                 "model": response.model,
                 "finish_reason": response.finish_reason,
                 "usage": {
-                    "input_tokens": response.usage.input_tokens if response.usage else None,
-                    "output_tokens": response.usage.output_tokens if response.usage else None,
-                    "cache_creation_input_tokens": getattr(response.usage, 'cache_creation_input_tokens', None) if response.usage else None,
-                    "cache_read_input_tokens": getattr(response.usage, 'cache_read_input_tokens', None) if response.usage else None,
-                    "reasoning_tokens": getattr(response.usage, 'reasoning_tokens', None) if response.usage else None
+                    "input_tokens": response.usage.input_tokens
+                    if response.usage
+                    else None,
+                    "output_tokens": response.usage.output_tokens
+                    if response.usage
+                    else None,
+                    "cache_creation_input_tokens": getattr(
+                        response.usage, "cache_creation_input_tokens", None
+                    )
+                    if response.usage
+                    else None,
+                    "cache_read_input_tokens": getattr(
+                        response.usage, "cache_read_input_tokens", None
+                    )
+                    if response.usage
+                    else None,
+                    "reasoning_tokens": getattr(
+                        response.usage, "reasoning_tokens", None
+                    )
+                    if response.usage
+                    else None,
                 },
-                "tool_calls": [self._serialize_tool_call(tc) for tc in response.tool_calls] if response.tool_calls else None
+                "tool_calls": [
+                    self._serialize_tool_call(tc) for tc in response.tool_calls
+                ]
+                if response.tool_calls
+                else None,
             },
-            "tools_available": [tool.name for tool in tools] if tools else None
+            "tools_available": [tool.name for tool in tools] if tools else None,
         }
 
         self.trajectory_data["llm_interactions"].append(interaction)
         self.save_trajectory()
 
-    def record_agent_step(self,
-                         step_number: int,
-                         state: str,
-                         llm_messages: list[LLMMessage] | None = None,
-                         llm_response: LLMResponse | None = None,
-                         tool_calls: list[ToolCall] | None = None,
-                         tool_results: list[ToolResult] | None = None,
-                         reflection: str | None = None,
-                         error: str | None = None) -> None:
+    def record_agent_step(
+        self,
+        step_number: int,
+        state: str,
+        llm_messages: list[LLMMessage] | None = None,
+        llm_response: LLMResponse | None = None,
+        tool_calls: list[ToolCall] | None = None,
+        tool_results: list[ToolResult] | None = None,
+        reflection: str | None = None,
+        error: str | None = None,
+    ) -> None:
         """Record an agent execution step.
 
         Args:
@@ -131,27 +159,47 @@ class TrajectoryRecorder:
             "step_number": step_number,
             "timestamp": datetime.now().isoformat(),
             "state": state,
-            "llm_messages": [self._serialize_message(msg) for msg in llm_messages] if llm_messages else None,
+            "llm_messages": [self._serialize_message(msg) for msg in llm_messages]
+            if llm_messages
+            else None,
             "llm_response": {
                 "content": llm_response.content,
                 "model": llm_response.model,
                 "finish_reason": llm_response.finish_reason,
                 "usage": {
-                    "input_tokens": llm_response.usage.input_tokens if llm_response.usage else None,
-                    "output_tokens": llm_response.usage.output_tokens if llm_response.usage else None,
-                } if llm_response.usage else None,
-                "tool_calls": [self._serialize_tool_call(tc) for tc in llm_response.tool_calls] if llm_response.tool_calls else None
-            } if llm_response else None,
-            "tool_calls": [self._serialize_tool_call(tc) for tc in tool_calls] if tool_calls else None,
-            "tool_results": [self._serialize_tool_result(tr) for tr in tool_results] if tool_results else None,
+                    "input_tokens": llm_response.usage.input_tokens
+                    if llm_response.usage
+                    else None,
+                    "output_tokens": llm_response.usage.output_tokens
+                    if llm_response.usage
+                    else None,
+                }
+                if llm_response.usage
+                else None,
+                "tool_calls": [
+                    self._serialize_tool_call(tc) for tc in llm_response.tool_calls
+                ]
+                if llm_response.tool_calls
+                else None,
+            }
+            if llm_response
+            else None,
+            "tool_calls": [self._serialize_tool_call(tc) for tc in tool_calls]
+            if tool_calls
+            else None,
+            "tool_results": [self._serialize_tool_result(tr) for tr in tool_results]
+            if tool_results
+            else None,
             "reflection": reflection,
-            "error": error
+            "error": error,
         }
 
         self.trajectory_data["agent_steps"].append(step_data)
         self.save_trajectory()
 
-    def finalize_recording(self, success: bool, final_result: str | None = None) -> None:
+    def finalize_recording(
+        self, success: bool, final_result: str | None = None
+    ) -> None:
         """Finalize the trajectory recording.
 
         Args:
@@ -159,12 +207,16 @@ class TrajectoryRecorder:
             final_result: Final result or output of the task
         """
         end_time = datetime.now()
-        self.trajectory_data.update({
-            "end_time": end_time.isoformat(),
-            "success": success,
-            "final_result": final_result,
-            "execution_time": (end_time - self._start_time).total_seconds() if self._start_time else 0.0
-        })
+        self.trajectory_data.update(
+            {
+                "end_time": end_time.isoformat(),
+                "success": success,
+                "final_result": final_result,
+                "execution_time": (end_time - self._start_time).total_seconds()
+                if self._start_time
+                else 0.0,
+            }
+        )
 
         # Save to file
         self.save_trajectory()
@@ -175,7 +227,7 @@ class TrajectoryRecorder:
             # Ensure directory exists
             self.trajectory_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(self.trajectory_path, 'w', encoding='utf-8') as f:
+            with open(self.trajectory_path, "w", encoding="utf-8") as f:
                 json.dump(self.trajectory_data, f, indent=2, ensure_ascii=False)
 
         except Exception as e:
@@ -183,10 +235,7 @@ class TrajectoryRecorder:
 
     def _serialize_message(self, message: LLMMessage) -> dict[str, Any]:
         """Serialize an LLM message to a dictionary."""
-        data = {
-            "role": message.role,
-            "content": message.content
-        }
+        data = {"role": message.role, "content": message.content}
 
         if message.tool_call:
             data["tool_call"] = self._serialize_tool_call(message.tool_call)
@@ -202,7 +251,7 @@ class TrajectoryRecorder:
             "call_id": tool_call.call_id,
             "name": tool_call.name,
             "arguments": tool_call.arguments,
-            "id": getattr(tool_call, 'id', None)
+            "id": getattr(tool_call, "id", None),
         }
 
     def _serialize_tool_result(self, tool_result: ToolResult) -> dict[str, Any]:
@@ -212,7 +261,7 @@ class TrajectoryRecorder:
             "success": tool_result.success,
             "result": tool_result.result,
             "error": tool_result.error,
-            "id": getattr(tool_result, 'id', None)
+            "id": getattr(tool_result, "id", None),
         }
 
     def get_trajectory_path(self) -> str:

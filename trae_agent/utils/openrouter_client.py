@@ -1,15 +1,13 @@
 # Copyright (c) 2025 ByteDance Ltd. and/or its affiliates
 # SPDX-License-Identifier: MIT
 
-"""Azure client wrapper with tool integrations"""
+"""OpenRouter API client wrapper with tool integration."""
 
-import json
 import os
-import openai
-import time
+import json
 import random
-from typing import override
-
+import time
+import openai
 from openai.types.chat import (
     ChatCompletionFunctionMessageParam,
     ChatCompletionMessageParam,
@@ -24,45 +22,31 @@ from openai.types.chat.chat_completion_tool_message_param import (
     ChatCompletionToolMessageParam,
 )
 from openai.types.shared_params.function_definition import FunctionDefinition
+from typing import override
 
-from .base_client import BaseLLMClient
-from .llm_basics import LLMUsage, LLMMessage, LLMResponse
-from .config import ModelParameters
 from ..tools.base import Tool, ToolCall
+from ..utils.config import ModelParameters
+from .base_client import BaseLLMClient
+from .llm_basics import LLMMessage, LLMResponse, LLMUsage
 
 
-class AzureClient(BaseLLMClient):
-    """Azure client wrapper with tool schema generation."""
+class OpenRouterClient(BaseLLMClient):
+    """OpenRouter client wrapper with tool schema generation."""
 
     def __init__(self, model_parameters: ModelParameters):
         super().__init__(model_parameters)
 
         if self.api_key == "":
-            self.api_key: str = os.getenv("AZURE_API_KEY", "")
+            self.api_key: str = os.getenv("OPENROUTER_API_KEY", "")
 
         if self.api_key == "":
             raise ValueError(
-                "Azure API key not provided. Set AZURE_API_KEY in environment variables or config file."
+                "OpenRouter API key not provided. Set OPENROUTER_API_KEY in environment variables or config file."
             )
 
-        if self.base_url is None or self.base_url == "":
-            self.base_url: str | None = os.getenv("AZURE_API_BASE_URL")
-
-        if self.base_url is None:
-            raise ValueError(
-                "Azure API base url not provided. Set AZURE_API_BASE_URL in environment variables or config file."
-            )
-
-        if self.api_version is None or self.api_version == "":
-            self.api_version: str | None = os.getenv("AZURE_API_VERSION")
-
-        if self.api_version is None:
-            raise ValueError("Azure API version not provided. ")
-
-        self.client: openai.AzureOpenAI = openai.AzureOpenAI(
-            azure_endpoint=self.base_url,
-            api_version=self.api_version,
-            api_key=self.api_key,
+        # Use OpenAI SDK with OpenRouter's base URL
+        self.client: openai.OpenAI = openai.OpenAI(
+            api_key=self.api_key, base_url="https://openrouter.ai/api/v1"
         )
         self.message_history: list[ChatCompletionMessageParam] = []
 
@@ -79,12 +63,12 @@ class AzureClient(BaseLLMClient):
         tools: list[Tool] | None = None,
         reuse_history: bool = True,
     ) -> LLMResponse:
-        """Send chat messages to model provider with optional tool support."""
-        azure_messages = self.parse_messages(messages)
+        """Send chat messages to OpenRouter with optional tool support."""
+        openrouter_messages = self.parse_messages(messages)
         if reuse_history:
-            self.message_history = self.message_history + azure_messages
+            self.message_history = self.message_history + openrouter_messages
         else:
-            self.message_history = azure_messages
+            self.message_history = openrouter_messages
 
         tool_schemas = None
         # Add tools if provided
@@ -101,6 +85,13 @@ class AzureClient(BaseLLMClient):
                 for tool in tools
             ]
 
+        # Set up extra headers for OpenRouter
+        extra_headers = {}
+        if os.getenv("OPENROUTER_SITE_URL"):
+            extra_headers["HTTP-Referer"] = os.getenv("OPENROUTER_SITE_URL")
+        if os.getenv("OPENROUTER_SITE_NAME"):
+            extra_headers["X-Title"] = os.getenv("OPENROUTER_SITE_NAME")
+
         response = None
         error_message = ""
         for i in range(model_parameters.max_retries):
@@ -112,6 +103,7 @@ class AzureClient(BaseLLMClient):
                     temperature=model_parameters.temperature,
                     top_p=model_parameters.top_p,
                     max_tokens=model_parameters.max_tokens,
+                    extra_headers=extra_headers if extra_headers else openai.NOT_GIVEN,
                     n=1,
                 )
                 break
@@ -123,7 +115,7 @@ class AzureClient(BaseLLMClient):
 
         if response is None:
             raise ValueError(
-                f"Failed to get response from Azure after max retries: {error_message}"
+                f"Failed to get response from OpenRouter after max retries: {error_message}"
             )
 
         choice = response.choices[0]
@@ -136,9 +128,11 @@ class AzureClient(BaseLLMClient):
                     ToolCall(
                         name=tool_call.function.name,
                         call_id=tool_call.id,
-                        arguments=json.loads(tool_call.function.arguments)
-                        if tool_call.function.arguments
-                        else {},
+                        arguments=(
+                            json.loads(tool_call.function.arguments)
+                            if tool_call.function.arguments
+                            else {}
+                        ),
                     )
                 )
 
@@ -147,12 +141,14 @@ class AzureClient(BaseLLMClient):
             tool_calls=tool_calls,
             finish_reason=choice.finish_reason,
             model=response.model,
-            usage=LLMUsage(
-                input_tokens=response.usage.prompt_tokens,
-                output_tokens=response.usage.completion_tokens,
-            )
-            if response.usage
-            else None,
+            usage=(
+                LLMUsage(
+                    input_tokens=response.usage.prompt_tokens,
+                    output_tokens=response.usage.completion_tokens,
+                )
+                if response.usage
+                else None
+            ),
         )
 
         # update message history
@@ -185,7 +181,7 @@ class AzureClient(BaseLLMClient):
             self.trajectory_recorder.record_llm_interaction(
                 messages=messages,
                 response=llm_response,
-                provider="azure",
+                provider="openrouter",
                 model=model_parameters.model,
                 tools=tools,
             )
@@ -194,15 +190,31 @@ class AzureClient(BaseLLMClient):
 
     @override
     def supports_tool_calling(self, model_parameters: ModelParameters) -> bool:
-        return True
+        """Check if the current model supports tool calling."""
+        # Most modern models on OpenRouter support tool calling
+        # We'll be conservative and check for known capable models
+        tool_capable_patterns = [
+            "gpt-4",
+            "gpt-3.5-turbo",
+            "claude-3",
+            "claude-2",
+            "gemini",
+            "mistral",
+            "llama-3",
+            "command-r",
+        ]
+        return any(
+            pattern in model_parameters.model.lower()
+            for pattern in tool_capable_patterns
+        )
 
     def parse_messages(
         self, messages: list[LLMMessage]
     ) -> list[ChatCompletionMessageParam]:
-        azure_messages: list[ChatCompletionMessageParam] = []
+        openrouter_messages: list[ChatCompletionMessageParam] = []
         for msg in messages:
             if msg.tool_call:
-                azure_messages.append(
+                openrouter_messages.append(
                     ChatCompletionFunctionMessageParam(
                         content=json.dumps(
                             {
@@ -223,7 +235,7 @@ class AzureClient(BaseLLMClient):
                     result += msg.tool_result.error
                 result = result.strip()
 
-                azure_messages.append(
+                openrouter_messages.append(
                     ChatCompletionToolMessageParam(
                         content=result,
                         role="tool",
@@ -233,23 +245,23 @@ class AzureClient(BaseLLMClient):
             elif msg.role == "system":
                 if not msg.content:
                     raise ValueError("System message content is required")
-                azure_messages.append(
+                openrouter_messages.append(
                     ChatCompletionSystemMessageParam(content=msg.content, role="system")
                 )
             elif msg.role == "user":
                 if not msg.content:
                     raise ValueError("User message content is required")
-                azure_messages.append(
+                openrouter_messages.append(
                     ChatCompletionUserMessageParam(content=msg.content, role="user")
                 )
             elif msg.role == "assistant":
                 if not msg.content:
                     raise ValueError("Assistant message content is required")
-                azure_messages.append(
+                openrouter_messages.append(
                     ChatCompletionAssistantMessageParam(
                         content=msg.content, role="assistant"
                     )
                 )
             else:
                 raise ValueError(f"Invalid message role: {msg.role}")
-        return azure_messages
+        return openrouter_messages

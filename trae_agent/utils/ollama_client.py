@@ -1,19 +1,15 @@
 # Copyright (c) 2025 ByteDance Ltd. and/or its affiliates
 # SPDX-License-Identifier: MIT
 
-"""OpenAI API client wrapper with tool integration."""
-
+"""
+    Ollama API client wrapper with tool intergration
+"""
 import os
 import json
 import random
 import time
 import openai
-from openai.types.responses import (
-    EasyInputMessageParam,
-    FunctionToolParam,
-    ResponseFunctionToolCallParam,
-    ResponseInputParam,
-)
+from openai.types.responses import EasyInputMessageParam, FunctionToolParam, ResponseFunctionToolCallParam, ResponseInputParam
 from openai.types.responses.response_input_param import FunctionCallOutput
 from typing import override
 
@@ -23,51 +19,39 @@ from .base_client import BaseLLMClient
 from .llm_basics import LLMMessage, LLMResponse, LLMUsage
 
 
-class OpenAIClient(BaseLLMClient):
-    """OpenAI client wrapper with tool schema generation."""
-
+class OllamaClient(BaseLLMClient):
     def __init__(self, model_parameters: ModelParameters):
         super().__init__(model_parameters)
 
-        if self.api_key == "":
-            self.api_key: str = os.getenv("OPENAI_API_KEY", "")
+        # ollama default api key is ollama
+        self.api_key = "ollama" 
 
-        if self.api_key == "":
-            raise ValueError(
-                "OpenAI API key not provided. Set OPENAI_API_KEY in environment variables or config file."
-            )
-
-        self.client: openai.OpenAI = openai.OpenAI(api_key=self.api_key)
+        self.client: openai.OpenAI = openai.OpenAI(
+            # by default ollama doesn't require any api key. It should set to be "ollama". 
+            api_key=self.api_key,
+            base_url=model_parameters.base_url
+        )
+        
         self.message_history: ResponseInputParam = []
 
     @override
     def set_chat_history(self, messages: list[LLMMessage]) -> None:
-        """Set the chat history."""
-        self.message_history = self.parse_messages(messages)
+        return super().set_chat_history(messages) 
 
     @override
-    def chat(
-        self,
-        messages: list[LLMMessage],
-        model_parameters: ModelParameters,
-        tools: list[Tool] | None = None,
-        reuse_history: bool = True,
-    ) -> LLMResponse:
+    def chat(self, messages: list[LLMMessage], model_parameters: ModelParameters, tools: list[Tool] | None = None, reuse_history: bool = True) -> LLMResponse:       
         """Send chat messages to OpenAI with optional tool support."""
         openai_messages: ResponseInputParam = self.parse_messages(messages)
 
         tool_schemas = None
         if tools:
-            tool_schemas = [
-                FunctionToolParam(
-                    name=tool.name,
-                    description=tool.description,
-                    parameters=tool.get_input_schema(),
-                    strict=True,
-                    type="function",
-                )
-                for tool in tools
-            ]
+            tool_schemas = [FunctionToolParam(
+                name=tool.name,
+                description=tool.description,
+                parameters=tool.get_input_schema(),
+                strict=True,
+                type="function"
+            ) for tool in tools]
 
         if reuse_history:
             self.message_history = self.message_history + openai_messages
@@ -94,24 +78,18 @@ class OpenAIClient(BaseLLMClient):
                 continue
 
         if response is None:
-            raise ValueError(
-                f"Failed to get response from OpenAI after max retries: {error_message}"
-            )
+            raise ValueError(f"Failed to get response from OpenAI after max retries: {error_message}")
 
         content = ""
         tool_calls: list[ToolCall] = []
         for output_block in response.output:
             if output_block.type == "function_call":
-                tool_calls.append(
-                    ToolCall(
-                        call_id=output_block.call_id,
-                        name=output_block.name,
-                        arguments=json.loads(output_block.arguments)
-                        if output_block.arguments
-                        else {},
-                        id=output_block.id,
-                    )
-                )
+                tool_calls.append(ToolCall(
+                    call_id=output_block.call_id,
+                    name=output_block.name,
+                    arguments=json.loads(output_block.arguments) if output_block.arguments else {},
+                    id=output_block.id
+                ))
                 tool_call_param = ResponseFunctionToolCallParam(
                     arguments=output_block.arguments,
                     call_id=output_block.call_id,
@@ -124,15 +102,17 @@ class OpenAIClient(BaseLLMClient):
                     tool_call_param["id"] = output_block.id
                 self.message_history.append(tool_call_param)
             elif output_block.type == "message":
-                content = "".join(
-                    content_block.text
-                    for content_block in output_block.content
-                    if content_block.type == "output_text"
-                )
+                for content_block in output_block.content:
+                    if content_block.type == "output_text":
+                        content += content_block.text
 
         if content != "":
             self.message_history.append(
-                EasyInputMessageParam(content=content, role="assistant", type="message")
+                EasyInputMessageParam(
+                    content=content,
+                    role="assistant",
+                    type="message"
+                )
             )
 
         usage = None
@@ -141,7 +121,7 @@ class OpenAIClient(BaseLLMClient):
                 input_tokens=response.usage.input_tokens,
                 output_tokens=response.usage.output_tokens,
                 cache_read_input_tokens=response.usage.input_tokens_details.cached_tokens,
-                reasoning_tokens=response.usage.output_tokens_details.reasoning_tokens,
+                reasoning_tokens=response.usage.output_tokens_details.reasoning_tokens
             )
 
         llm_response = LLMResponse(
@@ -149,7 +129,7 @@ class OpenAIClient(BaseLLMClient):
             usage=usage,
             model=response.model,
             finish_reason=response.status,
-            tool_calls=tool_calls if len(tool_calls) > 0 else None,
+            tool_calls=tool_calls if len(tool_calls) > 0 else None
         )
 
         # Record trajectory if recorder is available
@@ -159,33 +139,29 @@ class OpenAIClient(BaseLLMClient):
                 response=llm_response,
                 provider="openai",
                 model=model_parameters.model,
-                tools=tools,
+                tools=tools
             )
 
         return llm_response
-
+    
     @override
     def supports_tool_calling(self, model_parameters: ModelParameters) -> bool:
         """Check if the current model supports tool calling."""
-
-        if "o1-mini" in model_parameters.model:
-            return False
-
-        tool_capable_models = [
-            "gpt-4-turbo",
-            "gpt-4o",
-            "gpt-4o-mini",
-            "gpt-4.1",
-            "gpt-4.5",
-            "o1",
-            "o3",
-            "o3-mini",
-            "o4-mini",
+        
+        tool_support_model = [
+            "deepseek-r1", "qwen3" , "llama3.1","llama3.2" , "mistral" ,
+            "qwen2.5" , "qwen2.5-coder", "mistral-nemo", "llama3.3",
+            "qwq","mistral-small","mixtral","smollm2","llama4","command-r",
+            "hermes3","phi4-mini","granite3.3","devstral","mistral-small3.1"
         ]
-        return any(model in model_parameters.model for model in tool_capable_models)
 
-    def parse_messages(self, messages: list[LLMMessage]) -> ResponseInputParam:
-        """Parse the messages to OpenAI format."""
+        return any(model in model_parameters.model for model in tool_support_model)
+
+
+    def parse_messages(self , messages: list[LLMMessage]) -> ResponseInputParam:
+        """
+            Ollama parse messages should be compitable with openai handling
+        """
         openai_messages: ResponseInputParam = []
         for msg in messages:
             if msg.tool_result:
@@ -200,13 +176,11 @@ class OpenAIClient(BaseLLMClient):
                 elif msg.role == "user":
                     openai_messages.append({"role": "user", "content": msg.content})
                 elif msg.role == "assistant":
-                    openai_messages.append(
-                        {"role": "assistant", "content": msg.content}
-                    )
+                    openai_messages.append({"role": "assistant", "content": msg.content})
                 else:
                     raise ValueError(f"Invalid message role: {msg.role}")
         return openai_messages
-
+    
     def parse_tool_call(self, tool_call: ToolCall) -> ResponseFunctionToolCallParam:
         """Parse the tool call from the LLM response."""
         return ResponseFunctionToolCallParam(
@@ -216,9 +190,7 @@ class OpenAIClient(BaseLLMClient):
             type="function_call",
         )
 
-    def parse_tool_call_result(
-        self, tool_call_result: ToolResult
-    ) -> FunctionCallOutput:
+    def parse_tool_call_result(self, tool_call_result: ToolResult) -> FunctionCallOutput:
         """Parse the tool call result from the LLM response."""
         result: str = ""
         if tool_call_result.result:
@@ -233,3 +205,4 @@ class OpenAIClient(BaseLLMClient):
             output=result,
             type="function_call_output",
         )
+        

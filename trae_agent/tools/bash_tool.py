@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Anthroic
+# Copyright (c) 2023 Anthropic
 # Copyright (c) 2025 ByteDance Ltd. and/or its affiliates.
 # SPDX-License-Identifier: MIT
 #
@@ -71,7 +71,7 @@ class _BashSession:
         if self._process.returncode is not None:
             return ToolExecResult(
                 error=f"bash has exited with returncode {self._process.returncode}. tool must be restarted.",
-                error_code=-1
+                error_code=-1,
             )
         if self._timed_out:
             raise ToolError(
@@ -99,7 +99,7 @@ class _BashSession:
                     output: str = self._process.stdout._buffer.decode()  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType, reportUnknownVariableType]
                     if self._sentinel in output:
                         # strip the sentinel and break
-                        output = output[: output.index(self._sentinel)] # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+                        output = output[: output.index(self._sentinel)]  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
                         break
         except asyncio.TimeoutError:
             self._timed_out = True
@@ -107,20 +107,22 @@ class _BashSession:
                 f"timed out: bash has not returned in {self._timeout} seconds and must be restarted",
             ) from None
 
-        if output.endswith("\n"): # pyright: ignore[reportUnknownMemberType]
-            output = output[:-1] # pyright: ignore[reportUnknownVariableType]
+        if output.endswith("\n"):  # pyright: ignore[reportUnknownMemberType]
+            output = output[:-1]  # pyright: ignore[reportUnknownVariableType]
 
         error: str = self._process.stderr._buffer.decode()  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType, reportUnknownVariableType]
-        if error.endswith("\n"): # pyright: ignore[reportUnknownMemberType]
-            error = error[:-1] # pyright: ignore[reportUnknownVariableType]
+        if error.endswith("\n"):  # pyright: ignore[reportUnknownMemberType]
+            error = error[:-1]  # pyright: ignore[reportUnknownVariableType]
 
-        error_code = self._process.returncode if self._process.returncode is not None else 0
+        error_code = (
+            self._process.returncode if self._process.returncode is not None else 0
+        )
 
         # clear the buffers so that the next output can be read correctly
         self._process.stdout._buffer.clear()  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
         self._process.stderr._buffer.clear()  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
 
-        return ToolExecResult(output=output, error=error, error_code=error_code) # pyright: ignore[reportUnknownArgumentType]
+        return ToolExecResult(output=output, error=error, error_code=error_code)  # pyright: ignore[reportUnknownArgumentType]
 
 
 class BashTool(Tool):
@@ -157,14 +159,14 @@ class BashTool(Tool):
                 name="command",
                 type="string",
                 description="The bash command to run.",
-                required=True
+                required=True,
             ),
             ToolParameter(
                 name="restart",
                 type="boolean",
                 description="Set to true to restart the bash session.",
-                required=False
-            )
+                required=False,
+            ),
         ]
 
     @override
@@ -183,20 +185,18 @@ class BashTool(Tool):
                 await self._session.start()
             except Exception as e:
                 return ToolExecResult(
-                    error=f"Error starting bash session: {e}",
-                    error_code=-1
+                    error=f"Error starting bash session: {e}", error_code=-1
                 )
 
         command = str(arguments["command"]) if "command" in arguments else None
         if command is None:
             return ToolExecResult(
                 error=f"No command provided for the {self.get_name()} tool",
-                error_code=-1
+                error_code=-1,
             )
         try:
             return await self._session.run(command)
         except Exception as e:
             return ToolExecResult(
-                error=f"Error running bash command: {e}",
-                error_code=-1
+                error=f"Error running bash command: {e}", error_code=-1
             )
