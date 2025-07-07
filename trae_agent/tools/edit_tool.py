@@ -27,6 +27,13 @@ SNIPPET_LINES: int = 4
 class TextEditorTool(Tool):
     """Tool to replace a string in a file."""
 
+    def __init__(self, model_provider: str | None = None) -> None:
+        super().__init__(model_provider)
+
+    @override
+    def get_model_provider(self) -> str | None:
+        return self._model_provider
+
     @override
     def get_name(self) -> str:
         return "str_replace_based_edit_tool"
