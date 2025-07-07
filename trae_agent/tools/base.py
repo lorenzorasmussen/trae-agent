@@ -73,6 +73,13 @@ class ToolParameter:
 class Tool(ABC):
     """Base class for all tools."""
 
+    def __init__(self, model_provider: str | None = None):
+        self._model_provider = model_provider
+
+    @cached_property
+    def model_provider(self) -> str | None:
+        return self.get_model_provider()
+
     @cached_property
     def name(self) -> str:
         return self.get_name()
@@ -84,6 +91,10 @@ class Tool(ABC):
     @cached_property
     def parameters(self) -> list[ToolParameter]:
         return self.get_parameters()
+
+    def get_model_provider(self) -> str | None:
+        """Get the model provider."""
+        return self._model_provider
 
     @abstractmethod
     def get_name(self) -> str:
@@ -138,6 +149,9 @@ class Tool(ABC):
         schema["properties"] = properties
         if len(required) > 0:
             schema["required"] = required
+
+        # extra properties are not allowed
+        schema["additionalProperties"] = False
 
         return schema
 
