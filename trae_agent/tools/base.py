@@ -16,28 +16,36 @@ class ToolError(Exception):
         super().__init__(message)
         self.message: str = message
 
+
 @dataclass
 class ToolExecResult:
     """Intermediate result of a tool execution."""
+
     output: str | None = None
     error: str | None = None
     error_code: int = 0
 
+
 @dataclass
 class ToolResult:
     """Result of a tool execution."""
+
     call_id: str
     success: bool
     result: str | None = None
     error: str | None = None
-    id: str | None = None # OpenAI-specific field
+    id: str | None = None  # OpenAI-specific field
 
 
-ToolCallArguments = dict[str, str | int | float | dict[str, object] | list[object] | None]
+ToolCallArguments = dict[
+    str, str | int | float | dict[str, object] | list[object] | None
+]
+
 
 @dataclass
 class ToolCall:
     """Represents a parsed tool call."""
+
     name: str
     call_id: str
     arguments: ToolCallArguments = field(default_factory=dict)
@@ -49,8 +57,9 @@ class ToolCall:
 
 
 @dataclass
-class ToolParameter():
+class ToolParameter:
     """Tool parameter definition."""
+
     name: str
     type: str | list[str]
     description: str
@@ -91,7 +100,7 @@ class Tool(ABC):
         return {
             "name": self.get_name(),
             "description": self.get_description(),
-            "parameters": self.get_input_schema()
+            "parameters": self.get_input_schema(),
         }
 
     def get_input_schema(self) -> dict[str, object]:
@@ -106,7 +115,7 @@ class Tool(ABC):
         for param in self.parameters:
             properties[param.name] = {
                 "type": param.type,
-                "description": param.description
+                "description": param.description,
             }
             if param.enum:
                 properties[param.name]["enum"] = param.enum
@@ -137,7 +146,7 @@ class ToolExecutor:
                 success=False,
                 error=f"Tool '{tool_call.name}' not found. Available tools: {list(self.tools.keys())}",
                 call_id=tool_call.call_id,
-                id=tool_call.id
+                id=tool_call.id,
             )
 
         tool = self.tools[tool_call.name]
@@ -149,20 +158,24 @@ class ToolExecutor:
                 result=tool_exec_result.output,
                 error=tool_exec_result.error,
                 call_id=tool_call.call_id,
-                id=tool_call.id
+                id=tool_call.id,
             )
         except Exception as e:
             return ToolResult(
                 success=False,
                 error=f"Error executing tool '{tool_call.name}': {str(e)}",
                 call_id=tool_call.call_id,
-                id=tool_call.id
+                id=tool_call.id,
             )
 
     async def parallel_tool_call(self, tool_calls: list[ToolCall]) -> list[ToolResult]:
         """Execute tool calls in parallel"""
-        return await asyncio.gather(*[self.execute_tool_call(call) for call in tool_calls])
+        return await asyncio.gather(
+            *[self.execute_tool_call(call) for call in tool_calls]
+        )
 
-    async def sequential_tool_call(self, tool_calls: list[ToolCall]) -> list[ToolResult]:
+    async def sequential_tool_call(
+        self, tool_calls: list[ToolCall]
+    ) -> list[ToolResult]:
         """Execute tool calls in sequential"""
         return [await self.execute_tool_call(call) for call in tool_calls]

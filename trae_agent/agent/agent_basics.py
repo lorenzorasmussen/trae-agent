@@ -10,6 +10,7 @@ from ..utils.llm_basics import LLMResponse, LLMUsage
 
 class AgentState(Enum):
     """Agent execution states."""
+
     IDLE = "idle"
     THINKING = "thinking"
     CALLING_TOOL = "calling_tool"
@@ -21,6 +22,7 @@ class AgentState(Enum):
 @dataclass
 class AgentStep:
     """Represents a single step in agent execution."""
+
     step_number: int
     state: AgentState
     thought: str | None = None
@@ -36,6 +38,7 @@ class AgentStep:
 @dataclass
 class AgentExecution:
     """Represents a complete agent execution."""
+
     task: str
     steps: list[AgentStep]
     final_result: str | None = None
@@ -46,6 +49,7 @@ class AgentExecution:
 
 class AgentError(Exception):
     """Base class for agent errors."""
+
     def __init__(self, message: str):
         self.message: str = message
         super().__init__(self.message)
