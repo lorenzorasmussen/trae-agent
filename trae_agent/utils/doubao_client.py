@@ -102,9 +102,9 @@ class DoubaoClient(BaseLLMClient):
 
         choice = response.choices[0]
 
-        tool_calls = None
+        tool_calls: list[ToolCall] | None = None
         if choice.message.tool_calls:
-            tool_calls: list[ToolCall] | None = []
+            tool_calls = []
             for tool_call in choice.message.tool_calls:
                 tool_calls.append(ToolCall(
                     name=tool_call.function.name,
