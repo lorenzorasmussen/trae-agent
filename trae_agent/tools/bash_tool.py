@@ -36,14 +36,20 @@ class _BashSession:
         if self._started:
             return
 
+        # Windows compatibility: os.setsid not available
+        kwargs = {
+            'shell': True,
+            'bufsize': 0,
+            'stdin': asyncio.subprocess.PIPE,
+            'stdout': asyncio.subprocess.PIPE,
+            'stderr': asyncio.subprocess.PIPE
+        }
+        if os.name != 'nt':  # Unix-like systems
+            kwargs['preexec_fn'] = os.setsid
+
         self._process = await asyncio.create_subprocess_shell(
-            self.command,
-            preexec_fn=os.setsid,
-            shell=True,
-            bufsize=0,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+            "cmd.exe" if os.name == 'nt' else self.command,
+            **kwargs
         )
 
         self._started = True
