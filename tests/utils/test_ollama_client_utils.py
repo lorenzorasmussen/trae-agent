@@ -6,15 +6,15 @@ Currently, we only test init, chat, and set chat history.
 WARNING: This Ollama test should not be used in the GitHub Actions workflow, as using Ollama for testing consumes too much time due to installation.
 """
 
-import unittest
-import sys
 import os
+import sys
+import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-from trae_agent.utils.ollama_client import OllamaClient
 from trae_agent.utils.config import ModelParameters
 from trae_agent.utils.llm_basics import LLMMessage
+from trae_agent.utils.ollama_client import OllamaClient
 
 TEST_MODEL = "qwen3:4b"
 
