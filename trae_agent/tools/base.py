@@ -32,6 +32,7 @@ class ToolResult:
     """Result of a tool execution."""
 
     call_id: str
+    name: str #Gemini specific field
     success: bool
     result: str | None = None
     error: str | None = None
@@ -158,6 +159,7 @@ class ToolExecutor:
         """Execute a tool call."""
         if tool_call.name not in self.tools:
             return ToolResult(
+                name=tool_call.name, 
                 success=False,
                 error=f"Tool '{tool_call.name}' not found. Available tools: {list(self.tools.keys())}",
                 call_id=tool_call.call_id,
@@ -169,6 +171,7 @@ class ToolExecutor:
         try:
             tool_exec_result = await tool.execute(tool_call.arguments)
             return ToolResult(
+                name=tool_call.name,
                 success=tool_exec_result.error_code == 0,
                 result=tool_exec_result.output,
                 error=tool_exec_result.error,
@@ -177,6 +180,7 @@ class ToolExecutor:
             )
         except Exception as e:
             return ToolResult(
+                name=tool_call.name,
                 success=False,
                 error=f"Error executing tool '{tool_call.name}': {str(e)}",
                 call_id=tool_call.call_id,

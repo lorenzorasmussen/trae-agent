@@ -30,6 +30,8 @@ class ModelParameters:
     max_retries: int
     base_url: str | None = None
     api_version: str | None = None
+    candidate_count: int | None = None #Gemini specific field
+    stop_sequences: list[str] | None = None 
 
 
 @dataclass
@@ -99,15 +101,11 @@ class Config:
                     top_p=float(provider_config.get("top_p", 1)),
                     top_k=int(provider_config.get("top_k", 0)),
                     max_retries=int(provider_config.get("max_retries", 10)),
-                    parallel_tool_calls=bool(
-                        provider_config.get("parallel_tool_calls", False)
-                    ),
-                    base_url=str(provider_config.get("base_url"))
-                    if "base_url" in provider_config
-                    else None,
-                    api_version=str(provider_config.get("api_version"))
-                    if "api_version" in provider_config
-                    else None,
+                    parallel_tool_calls=bool(provider_config.get("parallel_tool_calls", False)),
+                    base_url=str(provider_config.get("base_url")) if "base_url" in provider_config else None,
+                    api_version=str(provider_config.get("api_version")) if "api_version" in provider_config else None,
+                    candidate_count=int(provider_config.get("candidate_count")) if "candidate_count" in provider_config else None,
+                    stop_sequences=provider_config.get("stop_sequences") if "stop_sequences" in provider_config else None,
                 )
 
         if "lakeview_config" in self._config:

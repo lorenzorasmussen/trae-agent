@@ -70,12 +70,13 @@ def load_config(
         "azure": "AZURE_API_KEY",
         "openrouter": "OPENROUTER_API_KEY",
         "doubao": "DOUBAO_API_KEY",
+        "google": "GOOGLE_API_KEY",
     }
 
     resolved_api_key = resolve_config_value(
         api_key,
         config.model_providers[str(resolved_provider)].api_key,
-        env_var_map.get(str(resolved_provider)),
+        env_var_map.get(str(resolved_provider))
     )
 
     if resolved_api_key is not None:
