@@ -55,8 +55,8 @@ class LLMClient:
                 self.client = DoubaoClient(model_parameters)
             case LLMProvider.OLLAMA:
                 from .ollama_client import OllamaClient
-                self.client = OllamaClient(model_parameters)
 
+                self.client = OllamaClient(model_parameters)
 
     def set_trajectory_recorder(self, recorder: TrajectoryRecorder | None) -> None:
         """Set the trajectory recorder for the underlying client."""
