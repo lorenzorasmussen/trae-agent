@@ -8,6 +8,7 @@ import json
 import random
 import time
 import traceback
+import uuid
 from typing import override, Any, Dict, List, Union
 
 from google import genai
@@ -109,7 +110,7 @@ class GoogleClient(BaseLLMClient):
                         content += part.text
                     elif part.function_call:
                         tool_calls.append(ToolCall(
-                            call_id=str(random.randint(1000, 9999)),
+                            call_id=str(uuid.uuid4()),
                             name=part.function_call.name,
                             arguments=dict(part.function_call.args) if part.function_call.args else {}
                         ))
