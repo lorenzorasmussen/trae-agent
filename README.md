@@ -37,7 +37,7 @@ uv sync
 
 ### Setup API Keys
 
-We recommand to configure Trae Agent using the config file.
+We recommend to configure Trae Agent using the config file.
 
 You can also set your API keys as environment variables:
 
@@ -220,7 +220,7 @@ trae-cli run "Debug the authentication module"
 # Saves to: trajectory_20250612_220546.json
 
 # Custom trajectory file
-trae-cli-cliae run "Optimize the database queries" --trajectory-file optimization_debug.json
+trae-cli run "Optimize the database queries" --trajectory-file optimization_debug.json
 ```
 
 Trajectory files contain:
