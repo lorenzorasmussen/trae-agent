@@ -8,12 +8,12 @@ import os
 import subprocess
 from typing import override
 
-from .base import Agent
-from .agent_basics import AgentError, AgentExecution
+from ..tools import tools_registry
+from ..tools.base import Tool, ToolExecutor, ToolResult
 from ..utils.config import Config
 from ..utils.llm_basics import LLMMessage, LLMResponse
-from ..tools.base import Tool, ToolExecutor, ToolResult
-from ..tools import tools_registry
+from .agent_basics import AgentError, AgentExecution
+from .base import Agent
 
 TraeAgentToolNames = [
     "str_replace_based_edit_tool",
@@ -190,7 +190,9 @@ If you are sure the issue has been solved, you should call the `task_done` to fi
             if not self.base_commit:
                 stdout = subprocess.check_output(["git", "--no-pager", "diff"]).decode()
             else:
-                stdout = subprocess.check_output(['git', '--no-pager', 'diff', self.base_commit, 'HEAD']).decode()
+                stdout = subprocess.check_output(
+                    ["git", "--no-pager", "diff", self.base_commit, "HEAD"]
+                ).decode()
         except (subprocess.CalledProcessError, FileNotFoundError):
             stdout = ""
         finally:
