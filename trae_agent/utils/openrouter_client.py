@@ -24,7 +24,7 @@ from openai.types.chat.chat_completion_tool_message_param import (
 from openai.types.shared_params.function_definition import FunctionDefinition
 from typing import override
 
-from ..tools.base import Tool, ToolCall, ToolResult
+from ..tools.base import Tool, ToolCall
 from ..utils.config import ModelParameters
 from .base_client import BaseLLMClient
 from .llm_basics import LLMMessage, LLMResponse, LLMUsage

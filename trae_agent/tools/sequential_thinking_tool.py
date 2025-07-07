@@ -28,6 +28,7 @@ class ThoughtData:
     branch_id: str | None = None
     needs_more_thoughts: bool | None = None
 
+
 class SequentialThinkingTool(Tool):
     """A tool for sequential thinking that helps break down complex problems.
 
@@ -103,25 +104,25 @@ You should:
                 name="thought",
                 type="string",
                 description="Your current thinking step",
-                required=True
+                required=True,
             ),
             ToolParameter(
                 name="next_thought_needed",
                 type="boolean",
                 description="Whether another thought step is needed",
-                required=True
+                required=True,
             ),
             ToolParameter(
                 name="thought_number",
                 type="integer",
                 description="Current thought number. Minimum value is 1.",
-                required=True
+                required=True,
             ),
             ToolParameter(
                 name="total_thoughts",
                 type="integer",
                 description="Estimated total thoughts needed. Minimum value is 1.",
-                required=True
+                required=True,
             ),
             ToolParameter(
                 name="is_revision",
@@ -147,7 +148,7 @@ You should:
                 name="needs_more_thoughts",
                 type="boolean",
                 description="If more thoughts are needed",
-            )
+            ),
         ]
 
     def __init__(self):
@@ -160,13 +161,19 @@ You should:
         if "thought" not in arguments or not isinstance(arguments["thought"], str):
             raise ValueError("Invalid thought: must be a string")
 
-        if "thought_number" not in arguments or not isinstance(arguments["thought_number"], int):
+        if "thought_number" not in arguments or not isinstance(
+            arguments["thought_number"], int
+        ):
             raise ValueError("Invalid thought_number: must be a number")
 
-        if "total_thoughts" not in arguments or not isinstance(arguments["total_thoughts"], int):
+        if "total_thoughts" not in arguments or not isinstance(
+            arguments["total_thoughts"], int
+        ):
             raise ValueError("Invalid total_thoughts: must be a number")
 
-        if "next_thought_needed" not in arguments or not isinstance(arguments["next_thought_needed"], bool):
+        if "next_thought_needed" not in arguments or not isinstance(
+            arguments["next_thought_needed"], bool
+        ):
             raise ValueError("Invalid next_thought_needed: must be a boolean")
 
         # Validate minimum values
@@ -178,15 +185,24 @@ You should:
 
         # Validate optional revision fields
         if "revises_thought" in arguments and arguments["revises_thought"] is not None:
-            if not isinstance(arguments["revises_thought"], int) or arguments["revises_thought"] < 1:
+            if (
+                not isinstance(arguments["revises_thought"], int)
+                or arguments["revises_thought"] < 1
+            ):
                 raise ValueError("revises_thought must be a positive integer")
             else:
                 revises_thought = int(arguments["revises_thought"])
         else:
             revises_thought = None
 
-        if "branch_from_thought" in arguments and arguments["branch_from_thought"] is not None:
-            if not isinstance(arguments["branch_from_thought"], int) or arguments["branch_from_thought"] < 1:
+        if (
+            "branch_from_thought" in arguments
+            and arguments["branch_from_thought"] is not None
+        ):
+            if (
+                not isinstance(arguments["branch_from_thought"], int)
+                or arguments["branch_from_thought"] < 1
+            ):
                 raise ValueError("branch_from_thought must be a positive integer")
             else:
                 branch_from_thought = int(arguments["branch_from_thought"])
@@ -197,7 +213,9 @@ You should:
         thought = str(arguments["thought"])
         thought_number = int(arguments["thought_number"])  # Already validated as int
         total_thoughts = int(arguments["total_thoughts"])  # Already validated as int
-        next_thought_needed = bool(arguments["next_thought_needed"])  # Already validated as bool
+        next_thought_needed = bool(
+            arguments["next_thought_needed"]
+        )  # Already validated as bool
 
         # Handle optional fields with proper type checking
         is_revision = None
@@ -210,7 +228,10 @@ You should:
         if "branch_id" in arguments and arguments["branch_id"] is not None:
             branch_id = str(arguments["branch_id"])
 
-        if "needs_more_thoughts" in arguments and arguments["needs_more_thoughts"] is not None:
+        if (
+            "needs_more_thoughts" in arguments
+            and arguments["needs_more_thoughts"] is not None
+        ):
             needs_more_thoughts = bool(arguments["needs_more_thoughts"])
 
         return ThoughtData(
@@ -222,7 +243,7 @@ You should:
             revises_thought=revises_thought,
             branch_from_thought=branch_from_thought,
             branch_id=branch_id,
-            needs_more_thoughts=needs_more_thoughts
+            needs_more_thoughts=needs_more_thoughts,
         )
 
     def _format_thought(self, thought_data: ThoughtData) -> str:
@@ -281,7 +302,7 @@ You should:
                 "total_thoughts": validated_input.total_thoughts,
                 "next_thought_needed": validated_input.next_thought_needed,
                 "branches": list(self.branches.keys()),
-                "thought_history_length": len(self.thought_history)
+                "thought_history_length": len(self.thought_history),
             }
 
             return ToolExecResult(
@@ -289,12 +310,8 @@ You should:
             )
 
         except Exception as e:
-            error_data = {
-                "error": str(e),
-                "status": "failed"
-            }
+            error_data = {"error": str(e), "status": "failed"}
             return ToolExecResult(
                 error=f"Sequential thinking failed: {str(e)}\n\nDetails:\n{json.dumps(error_data, indent=2)}",
-                error_code=-1
+                error_code=-1,
             )
-

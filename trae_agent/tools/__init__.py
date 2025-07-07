@@ -17,12 +17,12 @@ __all__ = [
     "BashTool",
     "TextEditorTool",
     "SequentialThinkingTool",
-    "TaskDoneTool"
+    "TaskDoneTool",
 ]
 
 tools_registry = {
     "bash": BashTool,
     "str_replace_based_edit_tool": TextEditorTool,
     "sequentialthinking": SequentialThinkingTool,
-    "task_done": TaskDoneTool
+    "task_done": TaskDoneTool,
 }
