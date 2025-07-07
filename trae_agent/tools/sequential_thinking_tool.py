@@ -151,7 +151,7 @@ You should:
             ),
         ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.thought_history: list[ThoughtData] = []
         self.branches: dict[str, list[ThoughtData]] = {}
         super().__init__()

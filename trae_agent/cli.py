@@ -103,6 +103,7 @@ def cli():
 @click.option("--patch-path", "-pp", help="Path to patch file")
 def run(
     task: str,
+    patch_path: str,
     provider: str | None = None,
     model: str | None = None,
     api_key: str | None = None,
@@ -111,7 +112,6 @@ def run(
     must_patch: bool = False,
     config_file: str = "trae_config.json",
     trajectory_file: str | None = None,
-    patch_path: str | None = None,
 ):
     """Run a task using Trae Agent.
 
@@ -129,7 +129,7 @@ def run(
             sys.exit(1)
 
     task_path = Path(task)
-    if task_path.exists() and task_path.is_file:
+    if task_path.exists() and task_path.is_file():
         task = task_path.read_text()
 
     config = load_config(provider, model, api_key, config_file, max_steps)

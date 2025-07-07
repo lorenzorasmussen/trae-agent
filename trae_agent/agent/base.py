@@ -154,7 +154,7 @@ class Agent(ABC):
                             if self.cli_console:
                                 self.cli_console.update_status(step)
 
-                            messages: list[LLMMessage] = []
+                            messages = []
                             for tool_result in tool_results:
                                 # Add tool result to conversation
                                 message = LLMMessage(

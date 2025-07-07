@@ -230,7 +230,7 @@ class CLIConsole:
             width=80,
         )
 
-    def create_agent_steps_display(self):
+    def create_agent_steps_display(self) -> Group:
         panels: list[Panel] = []
         if self.agent_execution is None:
             previous_steps = (
@@ -287,7 +287,7 @@ class CLIConsole:
         panels = panels[::-1]
         return Group(*panels, fit=False)
 
-    def print_task_progress(self):
+    def print_task_progress(self) -> None:
         if self.agent_execution is not None:
             render_group: Group = Group(
                 self.create_agent_steps_display(),

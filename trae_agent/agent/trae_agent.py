@@ -12,7 +12,7 @@ from .base import Agent
 from .agent_basics import AgentError, AgentExecution
 from ..utils.config import Config
 from ..utils.llm_basics import LLMMessage, LLMResponse
-from ..tools.base import Tool, ToolExecutor, ToolResult
+from ..tools.base import ToolExecutor, ToolResult, Tool
 from ..tools import tools_registry
 
 TraeAgentToolNames = [
