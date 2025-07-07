@@ -168,7 +168,7 @@ Follow these steps methodically:
 **Guiding Principle:** Act like a senior software engineer. Prioritize correctness, safety, and high-quality, test-driven development.
 
 # GUIDE FOR HOW TO USE "sequential_thinking" TOOL:
-- Your thinking should be thorough and so it's fine if it's very long. Set totalThoughts to at least 5, but setting it up to 25 is fine as well. You'll need more total thoughts when you are considering multiple possible solutions or root causes for an issue.
+- Your thinking should be thorough and so it's fine if it's very long. Set total_thoughts to at least 5, but setting it up to 25 is fine as well. You'll need more total thoughts when you are considering multiple possible solutions or root causes for an issue.
 - Use this tool as much as you find necessary to improve the quality of your answers.
 - You can run bash commands (like tests, a reproduction script, or 'grep'/'find' to find relevant context) in between thoughts.
 - The sequential_thinking tool can help you break down complex problems, analyze issues step-by-step, and ensure a thorough approach to problem-solving.
@@ -183,15 +183,15 @@ If you are sure the issue has been solved, you should call the `task_done` to fi
     def get_git_diff(self) -> str:
         """Get the git diff of the project."""
         pwd = os.getcwd()
+        if not os.path.isdir(self.project_path):
+            return ""
         os.chdir(self.project_path)
         try:
             if not self.base_commit:
                 stdout = subprocess.check_output(["git", "--no-pager", "diff"]).decode()
             else:
-                stdout = subprocess.check_output(
-                    ["git", "--no-pager", "diff", self.base_commit, "HEAD"]
-                ).decode()
-        except:  # noqa: E722
+                stdout = subprocess.check_output(['git', '--no-pager', 'diff', self.base_commit, 'HEAD']).decode()
+        except (subprocess.CalledProcessError, FileNotFoundError):
             stdout = ""
         finally:
             os.chdir(pwd)
