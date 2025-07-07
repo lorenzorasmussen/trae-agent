@@ -169,6 +169,9 @@ trae-cli run "Review this code" --provider openrouter --model "anthropic/claude-
 
 # Use Gemini through OpenRouter
 trae-cli run "Generate docs" --provider openrouter --model "google/gemini-pro"
+
+# Use Qwen through Ollama
+trae-cli run "Comment this code" --provider ollama --model "qwen3"
 ```
 
 **Popular OpenRouter Models:**
