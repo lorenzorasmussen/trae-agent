@@ -32,7 +32,7 @@ class ToolResult:
     """Result of a tool execution."""
 
     call_id: str
-    name: str #Gemini specific field
+    name: str  # Gemini specific field
     success: bool
     result: str | None = None
     error: str | None = None
@@ -159,7 +159,7 @@ class ToolExecutor:
         """Execute a tool call."""
         if tool_call.name not in self.tools:
             return ToolResult(
-                name=tool_call.name, 
+                name=tool_call.name,
                 success=False,
                 error=f"Tool '{tool_call.name}' not found. Available tools: {list(self.tools.keys())}",
                 call_id=tool_call.call_id,
