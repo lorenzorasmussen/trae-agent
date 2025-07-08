@@ -150,8 +150,11 @@ class Tool(ABC):
         if len(required) > 0:
             schema["required"] = required
 
-        # extra properties are not allowed
-        schema["additionalProperties"] = False
+        # For OpenAI, we need to specify that additional properties are not allowed.
+        # For Gemini, this field is not allowed.
+        if self.model_provider == "openai":
+            # extra properties are not allowed
+            schema["additionalProperties"] = False
 
         return schema
 
