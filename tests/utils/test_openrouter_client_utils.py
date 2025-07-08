@@ -8,10 +8,7 @@ setting: to avoid
 """
 
 import os
-import sys
 import unittest
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from trae_agent.utils.config import ModelParameters
 from trae_agent.utils.llm_basics import LLMMessage
@@ -20,6 +17,10 @@ from trae_agent.utils.openrouter_client import OpenRouterClient
 TEST_MODEL = "mistralai/mistral-small-3.2-24b-instruct:free"
 
 
+@unittest.skipIf(
+    os.getenv("SKIP_OPENROUTER_TEST", "").lower() == "true",
+    "Open router tests skipped due to SKIP_OPENROUTER_TEST environment variable",
+)
 class TestOpenRouterClient(unittest.TestCase):
     """
     Open router client init function
