@@ -83,7 +83,7 @@ class OpenAIClient(BaseLLMClient):
                     model=model_parameters.model,
                     tools=tool_schemas if tool_schemas else openai.NOT_GIVEN,
                     temperature=model_parameters.temperature
-                    if "o3" not in model_parameters.model
+                    if "o3" not in model_parameters.model and "o4-mini" not in  model_parameters.model
                     else openai.NOT_GIVEN,
                     top_p=model_parameters.top_p,
                     max_output_tokens=model_parameters.max_tokens,
