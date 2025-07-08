@@ -1,10 +1,5 @@
-import os
-import sys
 import unittest
 from unittest.mock import MagicMock, patch
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-
 
 from trae_agent.agent.agent_basics import AgentError
 from trae_agent.agent.trae_agent import TraeAgent
