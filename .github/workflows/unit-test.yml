@@ -27,10 +27,5 @@ jobs:
         uv sync --all-extras
 
     - name: Run unit tests
-      env:
-        # Set dummy API keys for testing
-        OPENAI_API_KEY: "dummy-openai-key-for-testing"
-        ANTHROPIC_API_KEY: "dummy-anthropic-key-for-testing"
-        OPENROUTER_API_KEY: "dummy-openrouter-key-for-testing"
       run: |
         uv run pytest tests/ -v --tb=short --continue-on-collection-errors
