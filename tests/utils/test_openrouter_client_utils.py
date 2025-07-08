@@ -17,6 +17,10 @@ from trae_agent.utils.openrouter_client import OpenRouterClient
 TEST_MODEL = "mistralai/mistral-small-3.2-24b-instruct:free"
 
 
+@unittest.skipIf(
+    os.getenv("SKIP_OPENROUTER_TEST", "").lower() == "true",
+    "Open router tests skipped due to SKIP_OPENROUTER_TEST environment variable",
+)
 class TestOpenRouterClient(unittest.TestCase):
     """
     Open router client init function

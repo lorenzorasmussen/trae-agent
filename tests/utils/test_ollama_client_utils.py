@@ -6,6 +6,7 @@ Currently, we only test init, chat, and set chat history.
 WARNING: This Ollama test should not be used in the GitHub Actions workflow, as using Ollama for testing consumes too much time due to installation.
 """
 
+import os
 import unittest
 
 from trae_agent.utils.config import ModelParameters
@@ -15,6 +16,10 @@ from trae_agent.utils.ollama_client import OllamaClient
 TEST_MODEL = "qwen3:4b"
 
 
+@unittest.skipIf(
+    os.getenv("SKIP_OLLAMA_TEST", "").lower() == "true",
+    "Ollama tests skipped due to SKIP_OLLAMA_TEST environment variable",
+)
 class TestOllamaClient(unittest.TestCase):
     def test_OllamaClient_init(self):
         """
