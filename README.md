@@ -186,6 +186,11 @@ Trae Agent uses a JSON configuration file (`trae_config.json`) for settings:
   }
 }
 ```
+**WARNING:**
+For Doubao users, please use the following base_url.
+```
+base_url=https://ark.cn-beijing.volces.com/api/v3/
+```
 
 **Configuration Priority:**
 1. Command-line arguments (highest)
