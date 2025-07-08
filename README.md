@@ -58,6 +58,8 @@ export OPENROUTER_SITE_URL="https://your-site.com"
 export OPENROUTER_SITE_NAME="Your App Name"
 ```
 
+While you can provide an `api_key` keyword argument, we recommend using [python-dotenv](https://pypi.org/project/python-dotenv/) to add `MODEL_API_KEY="My API Key"` to your `.env` file so that your API Key is not stored in source control.
+
 ### Basic Usage
 
 ```bash
